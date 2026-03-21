@@ -1,6 +1,6 @@
 [project]
 name = "memlog"
-version = "0.0.4"
+version = "0.0.5-rc.1"
 requires-python = ">=3.12"
 dependencies = [
     "whoosh==2.7.4",
