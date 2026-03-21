@@ -209,6 +209,7 @@ impl SearchIndex {
         }
 
         writer.commit()?;
+        self.reader.reload()?;
 
         if optimize {
             let mut w2: IndexWriter<TantivyDocument> = self.index.writer(50_000_000)?;
