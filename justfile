@@ -13,9 +13,18 @@ install:
 install-mcp:
     uv sync --group mcp
 
-# Run the MCP server (used by Claude Code)
+# Run the Python MCP server (stdio, used by Claude Code)
 mcp:
     uv run --group mcp python mcp_server.py
+
+# Build the Rust MCP server binary
+mcp-rs-build:
+    cargo build --release --manifest-path mcp-server-rs/Cargo.toml
+
+# Run the Rust MCP server locally (HTTP+SSE on :8090, proxies to backend on :8000)
+mcp-rs:
+    MEMLOG_URL=http://localhost:8000 MCP_BIND=0.0.0.0:8090 \
+    cargo run --release --manifest-path mcp-server-rs/Cargo.toml
 
 # Run backend dev server (port 8000)
 backend:

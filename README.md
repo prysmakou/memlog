@@ -44,6 +44,44 @@ If you have a token already, set `MEMLOG_TOKEN` instead of username/password.
 
 3. Restart Claude Code — the `memlog` server will appear in `/mcp`.
 
+## Rust MCP Server (HTTP + SSE)
+
+The Docker image also ships a Rust MCP server that speaks the [Streamable HTTP](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http) transport. Unlike the stdio server above, it runs as a persistent HTTP service — useful for remote access or multi-client setups.
+
+**Endpoint:** `http://<host>:8090/mcp`
+
+It exposes the same 8 tools as the Python server.
+
+### Running locally
+
+```bash
+just backend          # start the Python backend on :8000
+just mcp-rs           # start the Rust MCP server on :8090 (proxies to :8000)
+```
+
+### Docker Compose
+
+The Rust server starts automatically inside the Docker image alongside the Python backend. Expose port `8090` to access it:
+
+```yaml
+services:
+  memlog:
+    image: ghcr.io/prysmakou/memlog:latest
+    ports:
+      - "8080:8080" # web UI + API
+      - "8090:8090" # Rust MCP server (HTTP + SSE)
+    volumes:
+      - ./notes:/data/notes
+    environment:
+      MEMLOG_PATH: /data/notes
+      MEMLOG_AUTH_TYPE: password
+      MEMLOG_USERNAME: admin
+      MEMLOG_PASSWORD: changeme
+      MEMLOG_SECRET_KEY: change-this-to-a-random-secret
+```
+
+Configure an MCP client to connect to `http://<host>:8090/mcp`.
+
 ## Development
 
 Install [just](https://just.systems/man/en/packages.html), then:

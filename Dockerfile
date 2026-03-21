@@ -1,7 +1,7 @@
 ARG BUILD_DIR=/build
 
-# Build Container
-FROM --platform=$BUILDPLATFORM node:22-alpine AS build
+# Frontend build
+FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend-build
 
 ARG BUILD_DIR
 
@@ -20,6 +20,21 @@ RUN npm ci
 
 COPY client ./client
 RUN npm run build
+
+# Rust MCP server build
+FROM rust:bookworm AS rust-build
+
+WORKDIR /build
+
+# Cache dependencies by building a stub first
+COPY mcp-server-rs/Cargo.toml mcp-server-rs/Cargo.lock ./
+RUN mkdir src && echo 'fn main() {}' > src/main.rs
+RUN cargo build --release
+RUN rm -f target/release/deps/memlog_mcp*
+
+# Build the real binary
+COPY mcp-server-rs/src ./src
+RUN cargo build --release
 
 # Runtime Container
 FROM python:3.12-slim-bookworm
@@ -51,13 +66,17 @@ COPY LICENSE pyproject.toml uv.lock ./
 RUN mkdir server && uv pip install --system --no-cache . && rm -rf server
 
 COPY server ./server
-COPY --from=build --chmod=777 ${BUILD_DIR}/client/dist ./client/dist
+COPY --from=frontend-build --chmod=777 ${BUILD_DIR}/client/dist ./client/dist
+COPY --from=rust-build --chmod=755 /build/target/release/memlog-mcp ./mcp-server
 
 COPY entrypoint.sh healthcheck.sh /
 RUN chmod +x /entrypoint.sh /healthcheck.sh
 
 VOLUME /data
+ENV MCP_PORT=8090
+
 EXPOSE ${MEMLOG_PORT}/tcp
+EXPOSE ${MCP_PORT}/tcp
 HEALTHCHECK --interval=60s --timeout=10s CMD /healthcheck.sh
 
 ENTRYPOINT [ "/entrypoint.sh" ]
