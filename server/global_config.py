@@ -61,7 +61,8 @@ class GlobalConfig:
             )
             if value is True:
                 logger.warning(
-                    f"{depricated_key} is depricated. Please use {key} instead."
+                    f"{depricated_key} is depricated. "
+                    f"Please use {key} instead."
                 )
         return value
 

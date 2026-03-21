@@ -101,6 +101,8 @@ function toggleMenu(event) {
 }
 
 function showLogOutButton() {
-  return ![authTypes.none, authTypes.readOnly].includes(globalStore.config.authType);
+  return ![authTypes.none, authTypes.readOnly].includes(
+    globalStore.config.authType,
+  );
 }
 </script>

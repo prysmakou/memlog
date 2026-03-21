@@ -1,1 +1,1 @@
-from .file_system import FileSystemNotes
+from .file_system import FileSystemNotes as FileSystemNotes

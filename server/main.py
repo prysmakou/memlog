@@ -85,7 +85,6 @@ def get_note(title: str):
 
 
 if global_config.auth_type != AuthType.READ_ONLY:
-
     # Create Note
     @router.post(
         "/api/notes",
@@ -225,7 +224,6 @@ def get_attachment(filename: str):
 
 
 if global_config.auth_type != AuthType.READ_ONLY:
-
     # Create Attachment
     @router.post(
         "/api/attachments",
