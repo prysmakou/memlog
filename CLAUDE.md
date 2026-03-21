@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## About This Repo
 
-This is a personal fork of [flatnotes](https://github.com/dullage/flatnotes). Upstream no longer accepts PRs; changes here serve personal needs and may diverge from the original.
+Memlog is a self-hosted, database-less note-taking app. Notes are plain `.md` files on disk. The backend is written in Rust (axum + tantivy), the frontend is Vue 3. The Docker image ships both a web UI and an MCP server for AI agents.
 
 ## Commands
 
@@ -18,49 +18,44 @@ npm run watch     # Watch mode build
 
 Formatting: `npx prettier --write .`
 
-### Backend (`/server`)
+### Backend (`/server-rs`)
 
 ```bash
-# Install deps
-pipenv install
-
-# Run dev server (port 8000)
-pipenv run python -m uvicorn main:app --app-dir server --reload
-
-# Linting/formatting
-pipenv run black server/
-pipenv run flake8 server/
-pipenv run isort server/
+just backend      # Rust backend on :8000 (auth disabled, notes in ./tmp-notes)
+just test         # cargo test (42 tests)
+just mcp-rs       # MCP server on :8090 (proxies to :8000)
 ```
-
-No automated test suite exists in this project.
 
 ### Docker
 
 ```bash
-docker build -t notes .
+just build        # build Docker image (tag=local)
+just run          # run Docker image locally (auth disabled)
 ```
-
-The production Docker image runs the FastAPI backend (uvicorn on port 8080) and serves the pre-built frontend as static files.
 
 ## Architecture
 
-The repo has two independent parts:
+```
+client/        Vue 3 SPA (Vite)
+server-rs/     Rust backend (axum, tantivy, tokio)
+mcp-server-rs/ Rust MCP server (rmcp, Streamable HTTP)
+```
 
-- `client/` — Vue 3 SPA built with Vite
-- `server/` — FastAPI backend
+In development, the Vite dev server (port 8080) proxies `/api/`, `/attachments/`, and `/health` to the Rust backend (port 8000). In production (Docker), `memlog-server` serves both the API and the static frontend on port 8080; `memlog-mcp` runs on port 8090.
 
-In development, the Vite dev server (port 8080) proxies `/api/`, `/attachments/`, and `/health` to the FastAPI backend (port 8000). In production (Docker), a single uvicorn process serves both the API and the static frontend on port 8080.
+### Backend (`server-rs/src/`)
 
-### Backend (`server/`)
+- `main.rs` — axum app setup, `AppState`, startup
+- `config.rs` — `AppConfig` from env vars, `AuthType` enum
+- `error.rs` — `AppError` enum → HTTP responses, `validate_filename()`
+- `models.rs` — request/response structs (`#[serde(rename_all = "camelCase")]`)
+- `notes/fs.rs` — note CRUD with `tokio::fs`
+- `search/mod.rs` — tantivy full-text search, tag extraction, index sync
+- `auth/mod.rs` — JWT HS256, TOTP, `AuthenticatedUser` extractor
+- `attachments/fs.rs` — multipart upload, `mime_guess` for Content-Type
+- `routes/mod.rs` — all 13 routes, SPA shell, `ServeDir` for static files
 
-- `main.py` — FastAPI app, all route registrations
-- `global_config.py` — All configuration via environment variables (`MEMLOG_PATH`, `MEMLOG_AUTH_TYPE`, etc.)
-- `notes/file_system/file_system.py` — Note CRUD backed by the filesystem; Whoosh full-text search index stored in `.memlog/` subdirectory of the notes path
-- `auth/` — Auth strategies: `none`, `read_only`, `password`, `totp`
-- `attachments/file_system/` — File upload/download handling
-
-Notes are plain `.md` files in `MEMLOG_PATH`. There is no database.
+Notes are plain `.md` files in `MEMLOG_PATH`. Full-text search index is in `MEMLOG_PATH/.memlog/`. There is no database.
 
 ### Frontend (`client/`)
 
