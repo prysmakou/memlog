@@ -15,3 +15,4 @@
 !server/**
 !tailwind.config.js
 !vite.config.js
+!mcp-server-rs/**
