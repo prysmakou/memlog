@@ -1,3 +1,4 @@
+from importlib.metadata import version
 from typing import List, Literal
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, UploadFile
@@ -252,6 +253,12 @@ def healthcheck() -> str:
     """A lightweight endpoint that simply returns 'OK' to indicate the server
     is running."""
     return "OK"
+
+
+@router.get("/api/version")
+def get_version() -> dict:
+    """Return the application version."""
+    return {"version": version("memlog")}
 
 
 # endregion

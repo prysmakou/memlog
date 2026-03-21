@@ -2,6 +2,27 @@
 
 A self-hosted, database-less note-taking web app that utilises a flat folder of markdown files for storage.
 
+## Development
+
+Install [just](https://just.systems/man/en/packages.html), then:
+
+```bash
+just install   # install all deps (uv + npm)
+just backend   # backend dev server on :8000
+just frontend  # frontend dev server on :8080
+just test      # run backend tests
+just lint      # check backend code style
+just fmt       # auto-fix backend formatting
+just build     # build Docker image (tag=local)
+just run       # run Docker image locally (auth disabled)
+```
+
+Run `just` with no arguments to list all available commands.
+
+### Tests
+
+Tests cover helpers, note CRUD + search, and auth. They use temporary directories and require no running server.
+
 ## Running with Docker Compose
 
 Create a `docker-compose.yml`:
@@ -20,6 +41,11 @@ services:
       MEMLOG_USERNAME: admin
       MEMLOG_PASSWORD: changeme
       MEMLOG_SECRET_KEY: change-this-to-a-random-secret
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 ```
 
