@@ -7,6 +7,7 @@ default:
 install:
     uv sync --dev
     npm ci
+    uv run pre-commit install
 
 # Run backend dev server (port 8000)
 backend:

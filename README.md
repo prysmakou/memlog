@@ -7,17 +7,18 @@ A self-hosted, database-less note-taking web app that utilises a flat folder of 
 Install [just](https://just.systems/man/en/packages.html), then:
 
 ```bash
-just install   # install all deps (uv + npm)
+just install   # install all deps (uv + npm) and set up git hooks
 just backend   # backend dev server on :8000
 just frontend  # frontend dev server on :8080
 just test      # run backend tests
-just lint      # check backend code style
 just fmt       # auto-fix backend formatting
 just build     # build Docker image (tag=local)
 just run       # run Docker image locally (auth disabled)
 ```
 
 Run `just` with no arguments to list all available commands.
+
+`just install` sets up [pre-commit](https://pre-commit.com) git hooks that run ruff, prettier, and basic file checks automatically on every commit.
 
 ### Tests
 
@@ -59,21 +60,21 @@ Open `http://localhost:8080` in your browser.
 
 ### Environment Variables
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `MEMLOG_PATH` | yes | — | Path inside the container where notes (`.md` files) are stored |
-| `MEMLOG_AUTH_TYPE` | no | `password` | Auth mode: `none`, `read_only`, `password`, or `totp` |
-| `MEMLOG_USERNAME` | if auth | — | Login username (required for `password`/`totp` auth) |
-| `MEMLOG_PASSWORD` | if auth | — | Login password (required for `password`/`totp` auth) |
-| `MEMLOG_SECRET_KEY` | if auth | — | Secret used to sign JWT tokens — use a long random string |
-| `MEMLOG_TOTP_KEY` | if `totp` | — | TOTP seed key (required when `MEMLOG_AUTH_TYPE=totp`) |
-| `MEMLOG_SESSION_EXPIRY_DAYS` | no | `30` | How long login sessions last |
-| `MEMLOG_PATH_PREFIX` | no | `` | URL path prefix if serving behind a reverse proxy sub-path (e.g. `/notes`) |
-| `MEMLOG_QUICK_ACCESS_HIDE` | no | `false` | Hide the quick-access (recently modified) panel |
-| `MEMLOG_QUICK_ACCESS_TITLE` | no | `RECENTLY MODIFIED` | Title shown above the quick-access panel |
-| `MEMLOG_QUICK_ACCESS_TERM` | no | `*` | Search term used to populate the quick-access panel |
-| `MEMLOG_QUICK_ACCESS_SORT` | no | `lastModified` | Sort order for quick-access: `score`, `title`, or `lastModified` |
-| `MEMLOG_QUICK_ACCESS_LIMIT` | no | `4` | Number of notes shown in the quick-access panel |
+| Variable                     | Required  | Default             | Description                                                                |
+| ---------------------------- | --------- | ------------------- | -------------------------------------------------------------------------- |
+| `MEMLOG_PATH`                | yes       | —                   | Path inside the container where notes (`.md` files) are stored             |
+| `MEMLOG_AUTH_TYPE`           | no        | `password`          | Auth mode: `none`, `read_only`, `password`, or `totp`                      |
+| `MEMLOG_USERNAME`            | if auth   | —                   | Login username (required for `password`/`totp` auth)                       |
+| `MEMLOG_PASSWORD`            | if auth   | —                   | Login password (required for `password`/`totp` auth)                       |
+| `MEMLOG_SECRET_KEY`          | if auth   | —                   | Secret used to sign JWT tokens — use a long random string                  |
+| `MEMLOG_TOTP_KEY`            | if `totp` | —                   | TOTP seed key (required when `MEMLOG_AUTH_TYPE=totp`)                      |
+| `MEMLOG_SESSION_EXPIRY_DAYS` | no        | `30`                | How long login sessions last                                               |
+| `MEMLOG_PATH_PREFIX`         | no        | ``                  | URL path prefix if serving behind a reverse proxy sub-path (e.g. `/notes`) |
+| `MEMLOG_QUICK_ACCESS_HIDE`   | no        | `false`             | Hide the quick-access (recently modified) panel                            |
+| `MEMLOG_QUICK_ACCESS_TITLE`  | no        | `RECENTLY MODIFIED` | Title shown above the quick-access panel                                   |
+| `MEMLOG_QUICK_ACCESS_TERM`   | no        | `*`                 | Search term used to populate the quick-access panel                        |
+| `MEMLOG_QUICK_ACCESS_SORT`   | no        | `lastModified`      | Sort order for quick-access: `score`, `title`, or `lastModified`           |
+| `MEMLOG_QUICK_ACCESS_LIMIT`  | no        | `4`                 | Number of notes shown in the quick-access panel                            |
 
 ### Auth types
 
