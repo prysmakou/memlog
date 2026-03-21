@@ -14,12 +14,18 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["ruff>=0.4.0", "pytest>=8.0", "httpx>=0.27", "pre-commit>=3.0"]
+dev = [
+    "ruff>=0.4.0",
+    "pytest>=8.0",
+    "httpx>=0.27",
+    "pre-commit>=3.0",
+    "respx>=0.22.0",
+]
 mcp = ["mcp[cli]>=1.0", "httpx>=0.27"]
 
 [tool.pytest.ini_options]
-testpaths = ["server/tests"]
-pythonpath = ["server"]
+testpaths = ["server/tests", "tests"]
+pythonpath = ["server", "."]
 
 [tool.setuptools.packages.find]
 where = ["server"]

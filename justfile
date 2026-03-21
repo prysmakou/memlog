@@ -27,9 +27,13 @@ frontend:
 
 # --- Test & Lint ---
 
-# Run backend tests
+# Run all tests (backend + MCP server)
 test:
     uv run pytest -v
+
+# Smoke-test the MCP server against the configured MEMLOG_URL
+mcp-check:
+    uv run --group mcp python -c "import mcp_server, sys; notes = mcp_server.list_notes(); tags = mcp_server.list_tags(); print(f'OK — {len(notes)} notes, tags: {tags}'); sys.exit(0)"
 
 # Lint & format backend
 lint:
