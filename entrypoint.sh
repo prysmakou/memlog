@@ -30,6 +30,9 @@ start_mcp_server() {
         echo "Starting Rust MCP server on port ${MCP_PORT}..."
         MEMLOG_URL="http://localhost:${MEMLOG_PORT}" \
         MCP_BIND="0.0.0.0:${MCP_PORT}" \
+        MEMLOG_USERNAME="${MEMLOG_USERNAME}" \
+        MEMLOG_PASSWORD="${MEMLOG_PASSWORD}" \
+        MEMLOG_TOKEN="${MEMLOG_TOKEN}" \
         "$@" ${APP_PATH}/mcp-server &
     fi
 }
