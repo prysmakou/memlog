@@ -1,7 +1,7 @@
 ARG BUILD_DIR=/build
 
 # Client Build Container
-FROM --platform=$BUILDPLATFORM node:20-alpine AS build
+FROM --platform=$BUILDPLATFORM node:22-alpine AS build
 
 ARG BUILD_DIR
 
@@ -21,26 +21,25 @@ RUN npm ci
 COPY client ./client
 RUN npm run build
 
-# Pipenv Build Container
-FROM python:3.11-alpine3.20 as pipenv-build
+# UV Build Container
+FROM python:3.12-alpine3.21 AS uv-build
 
 ARG BUILD_DIR
 
 ENV APP_PATH=/app
 
-RUN apk add --no-cache build-base rust cargo libffi libffi-dev libssl3 openssl-dev
+RUN apk add --no-cache build-base rust cargo libffi-dev openssl-dev
 
-RUN pip install --no-cache-dir pipenv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR ${APP_PATH}
 
-COPY LICENSE Pipfile Pipfile.lock ./
-RUN mkdir .venv
-RUN pipenv install --deploy --ignore-pipfile && \
-    pipenv --clear
+COPY LICENSE pyproject.toml uv.lock ./
+ENV UV_SYSTEM_PYTHON=1
+RUN uv sync --frozen --no-dev --no-cache
 
 # Runtime Container
-FROM python:3.11-alpine3.20
+FROM python:3.12-alpine3.21
 
 ARG BUILD_DIR
 
@@ -62,7 +61,7 @@ WORKDIR ${APP_PATH}
 
 COPY server ./server
 COPY --from=build --chmod=777 ${BUILD_DIR}/client/dist ./client/dist
-COPY --from=pipenv-build ${APP_PATH}/.venv/lib/python3.11/site-packages/ /usr/local/lib/python3.11/site-packages/
+COPY --from=uv-build /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
 
 COPY entrypoint.sh healthcheck.sh /
 RUN chmod +x /entrypoint.sh /healthcheck.sh

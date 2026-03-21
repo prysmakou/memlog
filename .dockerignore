@@ -4,8 +4,8 @@
 # Include the following
 !.htmlnanorc
 !LICENSE
-!Pipfile
-!Pipfile.lock
+!pyproject.toml
+!uv.lock
 !client/**
 !entrypoint.sh
 !healthcheck.sh

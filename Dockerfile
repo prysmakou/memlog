@@ -1,7 +1,7 @@
 ARG BUILD_DIR=/build
 
 # Build Container
-FROM --platform=$BUILDPLATFORM node:20-alpine AS build
+FROM --platform=$BUILDPLATFORM node:22-alpine AS build
 
 ARG BUILD_DIR
 
@@ -22,7 +22,7 @@ COPY client ./client
 RUN npm run build
 
 # Runtime Container
-FROM python:3.11-slim-bullseye
+FROM python:3.12-slim-bookworm
 
 ARG BUILD_DIR
 
@@ -43,13 +43,13 @@ RUN apt update && apt install -y \
     gosu \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir pipenv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR ${APP_PATH}
 
-COPY LICENSE Pipfile Pipfile.lock ./
-RUN pipenv install --deploy --ignore-pipfile --system && \
-    pipenv --clear
+COPY LICENSE pyproject.toml uv.lock ./
+ENV UV_SYSTEM_PYTHON=1
+RUN uv sync --frozen --no-dev --no-cache
 
 COPY server ./server
 COPY --from=build --chmod=777 ${BUILD_DIR}/client/dist ./client/dist
