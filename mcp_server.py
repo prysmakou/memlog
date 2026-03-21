@@ -32,7 +32,7 @@ def _authed_client() -> httpx.Client:
                 timeout=10,
             )
             r.raise_for_status()
-            token = r.json()["accessToken"]
+            token = r.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     return httpx.Client(base_url=MEMLOG_URL, headers=headers, timeout=10)
 
