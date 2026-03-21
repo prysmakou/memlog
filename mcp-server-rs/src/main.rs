@@ -105,7 +105,9 @@ impl MemlogServer {
                 .unwrap_or_else(|_| "http://localhost:8080".to_string())
                 .trim_end_matches('/')
                 .to_string(),
-            token: Arc::new(RwLock::new(std::env::var("MEMLOG_TOKEN").ok())),
+            token: Arc::new(RwLock::new(
+                std::env::var("MEMLOG_TOKEN").ok().filter(|s| !s.is_empty()),
+            )),
             username: std::env::var("MEMLOG_USERNAME").ok(),
             password: std::env::var("MEMLOG_PASSWORD").ok(),
             tool_router: Self::tool_router(),
