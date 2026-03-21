@@ -114,7 +114,7 @@ class LocalAuth(BaseAuth):
         # Fix for #237. Remove padding as per spec:
         # https://github.com/google/google-authenticator/wiki/Key-Uri-Format#secret
         unpadded_secret = self.totp_key.rstrip(b"=")
-        uri = build_uri(unpadded_secret, self.username, issuer="flatnotes")
+        uri = build_uri(unpadded_secret, self.username, issuer="Memlog")
         qr = QRCode()
         qr.add_data(uri)
         print(
