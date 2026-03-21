@@ -8,8 +8,7 @@ ARG BUILD_DIR
 RUN mkdir ${BUILD_DIR}
 WORKDIR ${BUILD_DIR}
 
-COPY .htmlnanorc \
-    package.json \
+COPY package.json \
     package-lock.json \
     postcss.config.js \
     tailwind.config.js \
