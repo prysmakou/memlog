@@ -9,6 +9,13 @@ repos:
         exclude: \.devcontainer/devcontainer\.json
       - id: check-merge-conflict
 
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.3
+    hooks:
+      - id: bandit
+        args: ["-c", "pyproject.toml"]
+        files: ^server/
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.2
     hooks:

@@ -23,6 +23,11 @@ pythonpath = ["server"]
 [tool.setuptools.packages.find]
 where = ["server"]
 
+[tool.bandit]
+targets = ["server"]
+exclude_dirs = ["server/tests"]
+skips = ["B101"]  # assert statements are fine in tests (already excluded) and non-critical paths
+
 [tool.ruff]
 line-length = 79
 src = ["server"]
