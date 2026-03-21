@@ -1,0 +1,16 @@
+# Ignore everything
+**
+
+# Include the following
+!.htmlnanorc
+!Cargo.toml
+!client/**
+!entrypoint.sh
+!healthcheck.sh
+!package-lock.json
+!package.json
+!postcss.config.js
+!tailwind.config.js
+!vite.config.js
+!mcp-server-rs/**
+!server-rs/**
