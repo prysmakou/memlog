@@ -2,6 +2,43 @@
 
 A self-hosted, database-less note-taking web app that utilises a flat folder of markdown files for storage.
 
+## Claude Code MCP Server
+
+Memlog ships an [MCP](https://modelcontextprotocol.io) server so Claude Code can read and write your notes directly.
+
+**Tools exposed:** `search_notes`, `get_note`, `create_note`, `update_note`, `delete_note`, `list_tags`
+
+### Setup
+
+1. Install MCP dependencies:
+
+```bash
+just install-mcp
+```
+
+2. Create `.mcp.json` in the repo root (it's gitignored):
+
+```json
+{
+  "mcpServers": {
+    "memlog": {
+      "command": "uv",
+      "args": ["run", "--group", "mcp", "python", "mcp_server.py"],
+      "env": {
+        "MEMLOG_URL": "http://localhost:8080",
+        "MEMLOG_USERNAME": "your-username",
+        "MEMLOG_PASSWORD": "your-password"
+      }
+    }
+  }
+}
+```
+
+For `MEMLOG_AUTH_TYPE=none`, omit `MEMLOG_USERNAME` and `MEMLOG_PASSWORD`.
+If you have a token already, set `MEMLOG_TOKEN` instead of username/password.
+
+3. Restart Claude Code — the `memlog` server will appear in `/mcp`.
+
 ## Development
 
 Install [just](https://just.systems/man/en/packages.html), then:

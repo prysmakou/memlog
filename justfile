@@ -9,6 +9,14 @@ install:
     npm ci
     uv run pre-commit install
 
+# Install MCP server dependencies
+install-mcp:
+    uv sync --group mcp
+
+# Run the MCP server (used by Claude Code)
+mcp:
+    uv run --group mcp python mcp_server.py
+
 # Run backend dev server (port 8000)
 backend:
     uv run uvicorn main:app --app-dir server --reload --port 8000
