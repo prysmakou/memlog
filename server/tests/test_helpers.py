@@ -1,5 +1,6 @@
 import re
-from importlib.metadata import version
+import tomllib
+from pathlib import Path
 
 import pytest
 
@@ -66,6 +67,9 @@ def test_get_env_cast_bool_false(monkeypatch):
 
 
 # version
-def test_version_is_semver():
-    v = version("memlog")
-    assert re.match(r"^\d+\.\d+\.\d+", v)
+def test_version_matches_pyproject():
+    pyproject = Path(__file__).parent.parent.parent / "pyproject.toml"
+    with pyproject.open("rb") as f:
+        expected = tomllib.load(f)["project"]["version"]
+    # Must be exact semver, optionally with -rc.N or -beta.N suffix
+    assert re.match(r"^\d+\.\d+\.\d+(-[a-z]+\.\d+)?$", expected)

@@ -1,4 +1,5 @@
-from importlib.metadata import version
+import tomllib
+from pathlib import Path
 from typing import List, Literal
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, UploadFile
@@ -255,10 +256,15 @@ def healthcheck() -> str:
     return "OK"
 
 
+_pyproject = Path(__file__).parent.parent / "pyproject.toml"
+with _pyproject.open("rb") as _f:
+    _VERSION = tomllib.load(_f)["project"]["version"]
+
+
 @router.get("/api/version")
 def get_version() -> dict:
     """Return the application version."""
-    return {"version": version("memlog")}
+    return {"version": _VERSION}
 
 
 # endregion
