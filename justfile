@@ -36,6 +36,30 @@ fmt:
 fmt-frontend:
     npx prettier --write .
 
+# --- Release ---
+
+# Publish a release candidate: just release-rc 0.0.3 1  →  v0.0.3-rc.1
+release-rc version rc:
+    sed -i '' 's/^version = .*/version = "{{version}}-rc.{{rc}}"/' pyproject.toml
+    git add pyproject.toml
+    git commit -m "chore: bump version to {{version}}-rc.{{rc}}"
+    git tag v{{version}}-rc.{{rc}}
+    git push origin develop
+    git push origin v{{version}}-rc.{{rc}}
+
+# Publish a full release: just release 0.0.3  →  v0.0.3
+release version:
+    sed -i '' 's/^version = .*/version = "{{version}}"/' pyproject.toml
+    git add pyproject.toml
+    git commit -m "chore: bump version to {{version}}"
+    git tag v{{version}}
+    git push origin develop
+    git push origin v{{version}}
+
+# Create a GitHub release from an existing tag
+gh-release version:
+    gh release create v{{version}} --generate-notes
+
 # --- Docker ---
 
 # Build Docker image
