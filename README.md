@@ -3,7 +3,7 @@
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-A self-hosted, database-less note-taking web app that utilises a flat folder of markdown files for storage.
+Markdown notes for humans, MCP-native for AI agents.
 
 ## Claude Code MCP Server
 
