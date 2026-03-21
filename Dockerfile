@@ -29,14 +29,14 @@ ARG BUILD_DIR
 ENV PUID=1000
 ENV PGID=1000
 ENV EXEC_TOOL=gosu
-ENV FLATNOTES_HOST=0.0.0.0
-ENV FLATNOTES_PORT=8080
+ENV MEMLOG_HOST=0.0.0.0
+ENV MEMLOG_PORT=8080
 
 ENV APP_PATH=/app
-ENV FLATNOTES_PATH=/data
+ENV MEMLOG_PATH=/data
 
 RUN mkdir -p ${APP_PATH}
-RUN mkdir -p ${FLATNOTES_PATH}
+RUN mkdir -p ${MEMLOG_PATH}
 
 RUN apt update && apt install -y \
     curl \
@@ -58,7 +58,7 @@ COPY entrypoint.sh healthcheck.sh /
 RUN chmod +x /entrypoint.sh /healthcheck.sh
 
 VOLUME /data
-EXPOSE ${FLATNOTES_PORT}/tcp
+EXPOSE ${MEMLOG_PORT}/tcp
 HEALTHCHECK --interval=60s --timeout=10s CMD /healthcheck.sh
 
 ENTRYPOINT [ "/entrypoint.sh" ]

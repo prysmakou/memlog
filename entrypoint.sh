@@ -1,8 +1,8 @@
 #!/bin/sh
 
 [ "$EXEC_TOOL" ] || EXEC_TOOL=gosu
-[ "$FLATNOTES_HOST" ] || FLATNOTES_HOST=0.0.0.0
-[ "$FLATNOTES_PORT" ] || FLATNOTES_PORT=8080
+[ "$MEMLOG_HOST" ] || MEMLOG_HOST=0.0.0.0
+[ "$MEMLOG_PORT" ] || MEMLOG_PORT=8080
 
 set -e
 
@@ -17,14 +17,14 @@ memlog_command="python -m \
                   uvicorn \
                   main:app \
                   --app-dir server \
-                  --host ${FLATNOTES_HOST} \
-                  --port ${FLATNOTES_PORT} \
+                  --host ${MEMLOG_HOST} \
+                  --port ${MEMLOG_PORT} \
                   --proxy-headers \
                   --forwarded-allow-ips '*'"
 
 if [ `id -u` -eq 0 ] && [ `id -g` -eq 0 ]; then
     echo Setting file permissions...
-    chown -R ${PUID}:${PGID} ${FLATNOTES_PATH}
+    chown -R ${PUID}:${PGID} ${MEMLOG_PATH}
 
     echo Starting Memlog as user ${PUID}...
     exec ${EXEC_TOOL} ${PUID}:${PGID} ${memlog_command}
