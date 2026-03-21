@@ -9,7 +9,9 @@ Markdown notes for humans, MCP-native for AI agents.
 
 Memlog ships an [MCP](https://modelcontextprotocol.io) server so Claude Code can read and write your notes directly.
 
-**Tools exposed:** `search_notes`, `get_note`, `create_note`, `update_note`, `delete_note`, `list_tags`
+**Tools:** `list_notes`, `search_notes`, `get_note`, `create_note`, `append_to_note`, `update_note`, `delete_note`, `list_tags`
+
+**Resources:** notes are also exposed as `memlog://notes/<title>` MCP resources for protocol-level discoverability.
 
 ### Setup
 

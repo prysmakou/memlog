@@ -2,21 +2,16 @@
 
 import os
 from typing import Optional
+from urllib.parse import quote
 
 import httpx
 from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.resources.types import FunctionResource
+from pydantic import AnyUrl
 
 MEMLOG_URL = os.environ.get("MEMLOG_URL", "http://localhost:8080").rstrip("/")
 
 mcp = FastMCP("Memlog")
-
-
-def _client() -> httpx.Client:
-    headers = {}
-    token = os.environ.get("MEMLOG_TOKEN")
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    return httpx.Client(base_url=MEMLOG_URL, headers=headers, timeout=10)
 
 
 def _authed_client() -> httpx.Client:
@@ -35,6 +30,11 @@ def _authed_client() -> httpx.Client:
             token = r.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     return httpx.Client(base_url=MEMLOG_URL, headers=headers, timeout=10)
+
+
+# ---------------------------------------------------------------------------
+# Tools
+# ---------------------------------------------------------------------------
 
 
 @mcp.tool()
@@ -63,6 +63,28 @@ def search_notes(
 
 
 @mcp.tool()
+def list_notes(
+    sort: str = "lastModified",
+    order: str = "desc",
+) -> list[dict]:
+    """List all notes with title and lastModified timestamp (no content).
+
+    Args:
+        sort: Sort by 'title' or 'lastModified'. Default 'lastModified'.
+        order: 'asc' or 'desc'. Default 'desc'.
+    """
+    with _authed_client() as client:
+        r = client.get(
+            "/api/search", params={"term": "*", "sort": sort, "order": order}
+        )
+        r.raise_for_status()
+        return [
+            {"title": n["title"], "lastModified": n["lastModified"]}
+            for n in r.json()
+        ]
+
+
+@mcp.tool()
 def get_note(title: str) -> dict:
     """Get the full content of a note by title.
 
@@ -86,6 +108,30 @@ def create_note(title: str, content: str = "") -> dict:
     with _authed_client() as client:
         r = client.post(
             "/api/notes", json={"title": title, "content": content}
+        )
+        r.raise_for_status()
+        return r.json()
+
+
+@mcp.tool()
+def append_to_note(title: str, content: str) -> dict:
+    """Append content to the end of an existing note.
+
+    Safer than update_note for logging or journaling — existing content
+    is never overwritten.
+
+    Args:
+        title: Exact note title (without .md extension).
+        content: Markdown content to append.
+    """
+    with _authed_client() as client:
+        r = client.get(f"/api/notes/{title}")
+        r.raise_for_status()
+        existing = r.json()["content"]
+        separator = "\n" if existing.endswith("\n") else "\n\n"
+        new_content = existing + separator + content
+        r = client.patch(
+            f"/api/notes/{title}", json={"newContent": new_content}
         )
         r.raise_for_status()
         return r.json()
@@ -136,6 +182,51 @@ def list_tags() -> list[str]:
         r.raise_for_status()
         return r.json()
 
+
+# ---------------------------------------------------------------------------
+# Resources — notes exposed at memlog://notes/<title>
+# ---------------------------------------------------------------------------
+
+
+def _note_reader(title: str):
+    """Return a zero-argument callable that fetches a note's content."""
+
+    def read() -> str:
+        with _authed_client() as client:
+            r = client.get(f"/api/notes/{title}")
+            r.raise_for_status()
+            return r.json()["content"]
+
+    return read
+
+
+def _register_note_resources() -> None:
+    """Fetch all notes and register each as an MCP resource."""
+    try:
+        with _authed_client() as client:
+            r = client.get(
+                "/api/search",
+                params={"term": "*", "sort": "title", "order": "asc"},
+            )
+            r.raise_for_status()
+            notes = r.json()
+    except Exception:
+        return
+
+    for note in notes:
+        title = note["title"]
+        uri = f"memlog://notes/{quote(title, safe='')}"
+        resource = FunctionResource(
+            uri=AnyUrl(uri),
+            name=title,
+            description=f"Note: {title}",
+            mime_type="text/markdown",
+            fn=_note_reader(title),
+        )
+        mcp.add_resource(resource)
+
+
+_register_note_resources()
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")
