@@ -117,5 +117,3 @@ mcp-server-rs/ Rust MCP server (rmcp, Streamable HTTP)
 ```
 
 Notes are stored as plain `.md` files in `MEMLOG_PATH`. Full-text search uses a [tantivy](https://github.com/quickwit-oss/tantivy) index stored in `MEMLOG_PATH/.memlog/`. There is no database.
-
-> Inspired by [flatnotes](https://github.com/dullage/flatnotes) by dullage.
