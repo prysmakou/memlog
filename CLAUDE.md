@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## About This Repo
 
+User-facing documentation lives in the [GitHub Wiki](https://github.com/prysmakou/memlog/wiki) (installation, configuration, auth, search, MCP setup, reverse proxy). Keep the wiki up to date when changing user-visible behaviour.
+
 Memlog is a self-hosted, database-less note-taking app. Notes are plain `.md` files on disk. The backend is written in Rust (axum + tantivy), the frontend is Vue 3. The Docker image ships both a web UI and an MCP server for AI agents.
 
 ## Commands
