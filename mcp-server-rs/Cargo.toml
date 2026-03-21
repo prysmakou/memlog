@@ -1,6 +1,6 @@
 [package]
 name = "memlog-mcp"
-version = "0.0.5-rc.4"
+version = "0.0.1-rc.1"
 edition = "2021"
 
 [dependencies]
