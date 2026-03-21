@@ -7,14 +7,7 @@
 
 set -e
 
-echo "\
-======================================
-========== Welcome to Memlog =========
-======================================
-  'Writing is the geometry of the soul'
-                              — Plato
-──────────────────────────────────────
-"
+echo "'Writing is the geometry of the soul' — Plato"
 
 start_mcp_server() {
     if [ -x ${APP_PATH}/mcp-server ]; then
