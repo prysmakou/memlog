@@ -48,7 +48,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 WORKDIR ${APP_PATH}
 
 COPY LICENSE pyproject.toml uv.lock ./
-RUN mkdir server && uv pip install --system --no-cache . && rmdir server
+RUN mkdir server && uv pip install --system --no-cache . && rm -rf server
 
 COPY server ./server
 COPY --from=build --chmod=777 ${BUILD_DIR}/client/dist ./client/dist
