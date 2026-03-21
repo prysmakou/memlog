@@ -3,8 +3,6 @@
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-> **Note:** This is a personal fork of [flatnotes](https://github.com/dullage/flatnotes). The upstream project no longer accepts pull requests — this fork picks up where it left off. PRs are welcome.
-
 A self-hosted, database-less note-taking web app that utilises a flat folder of markdown files for storage.
 
 ## Claude Code MCP Server
