@@ -30,6 +30,7 @@ import {
   mdilNoteMultiple,
   mdilPlusCircle,
 } from "@mdi/light-js";
+import { useToast } from "primevue/usetoast";
 import { computed, ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 
@@ -38,12 +39,13 @@ import Logo from "../components/Logo.vue";
 import PrimeMenu from "../components/PrimeMenu.vue";
 import { authTypes, params, searchSortOptions } from "../constants.js";
 import { useGlobalStore } from "../globalStore.js";
-import { toggleTheme } from "../helpers.js";
+import { getToastOptions, toggleTheme } from "../helpers.js";
 import { clearStoredToken, getStoredToken } from "../tokenStorage.js";
 
 const globalStore = useGlobalStore();
 const menu = ref();
 const router = useRouter();
+const toast = useToast();
 
 defineProps({
   hideLogo: Boolean,
@@ -78,7 +80,7 @@ const menuItems = [
   {
     label: "Copy MCP Token",
     icon: mdilClipboard,
-    command: () => navigator.clipboard.writeText(getStoredToken()),
+    command: copyMcpToken,
     visible: () => showLogOutButton() && !!getStoredToken(),
   },
   {
@@ -96,6 +98,19 @@ const menuItems = [
 const showNewButton = computed(() => {
   return globalStore.config.authType !== authTypes.readOnly;
 });
+
+async function copyMcpToken() {
+  const token = getStoredToken();
+  try {
+    await navigator.clipboard.writeText(token);
+    toast.add(
+      getToastOptions("Token copied to clipboard", "MCP Token", "success"),
+    );
+  } catch {
+    // Fallback for non-HTTPS: show in a prompt so the user can copy manually
+    prompt("Copy your MCP token:", token);
+  }
+}
 
 function logOut() {
   clearStoredToken();
