@@ -1,3 +1,0 @@
-[workspace]
-members = ["mcp-server-rs", "server-rs"]
-resolver = "2"

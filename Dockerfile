@@ -20,27 +20,7 @@ RUN npm ci
 COPY client ./client
 RUN npm run build
 
-# ── Stage 2: Rust MCP binary (musl static, runs on Alpine) ───────────────────
-FROM rust:alpine AS rust-build
-
-RUN apk add --no-cache musl-dev
-
-WORKDIR /build
-
-# Cache workspace deps with stub binaries before copying real source
-COPY Cargo.toml ./
-COPY mcp-server-rs/Cargo.toml mcp-server-rs/Cargo.lock ./mcp-server-rs/
-COPY server-rs/Cargo.toml ./server-rs/
-RUN mkdir -p mcp-server-rs/src server-rs/src \
-    && echo 'fn main() {}' > mcp-server-rs/src/main.rs \
-    && echo 'fn main() {}' > server-rs/src/main.rs
-RUN cargo build --release -p memlog-mcp
-RUN rm -f target/release/deps/memlog_mcp*
-
-COPY mcp-server-rs/src ./mcp-server-rs/src
-RUN cargo build --release -p memlog-mcp
-
-# ── Stage 3: Python deps ──────────────────────────────────────────────────────
+# ── Stage 2: Python deps (backend + MCP server) ───────────────────────────────
 FROM python:3.13-alpine AS python-deps
 
 # gcc + musl-dev needed to compile some Python C extensions (e.g. cffi)
@@ -49,10 +29,11 @@ RUN apk add --no-cache gcc musl-dev
 WORKDIR /build
 
 COPY server/ ./server/
+COPY mcp-server/ ./mcp-server/
 RUN pip install --no-cache-dir uv && \
-    uv pip install --system --no-cache ./server
+    uv pip install --system --no-cache ./server ./mcp-server
 
-# ── Stage 4: Runtime ──────────────────────────────────────────────────────────
+# ── Stage 3: Runtime ──────────────────────────────────────────────────────────
 FROM python:3.13-alpine
 
 ARG BUILD_DIR
@@ -72,7 +53,6 @@ RUN apk add --no-cache su-exec curl && \
 WORKDIR ${APP_PATH}
 
 COPY --from=frontend-build --chmod=777 ${BUILD_DIR}/client/dist ./client/dist
-COPY --from=rust-build --chmod=755 /build/target/release/memlog-mcp ./mcp-server
 COPY --from=python-deps /usr/local/lib/python3.13 /usr/local/lib/python3.13
 COPY --from=python-deps /usr/local/bin/uvicorn /usr/local/bin/uvicorn
 

@@ -10,15 +10,12 @@ set -e
 echo "'Writing is the geometry of the soul' — Plato"
 
 start_mcp_server() {
-    if [ -x ${APP_PATH}/mcp-server ]; then
-        echo "Starting Rust MCP server on port ${MCP_PORT}..."
-        MEMLOG_URL="http://localhost:${MEMLOG_PORT}" \
-        MCP_BIND="0.0.0.0:${MCP_PORT}" \
-        MEMLOG_USERNAME="${MEMLOG_USERNAME}" \
-        MEMLOG_PASSWORD="${MEMLOG_PASSWORD}" \
-        MEMLOG_TOKEN="${MEMLOG_TOKEN}" \
-        "$@" ${APP_PATH}/mcp-server &
-    fi
+    echo "Starting Python MCP server on port ${MCP_PORT}..."
+    MEMLOG_URL="http://localhost:${MEMLOG_PORT}" \
+    MEMLOG_USERNAME="${MEMLOG_USERNAME}" \
+    MEMLOG_PASSWORD="${MEMLOG_PASSWORD}" \
+    MEMLOG_TOKEN="${MEMLOG_TOKEN}" \
+    "$@" uvicorn memlog_mcp.main:app --host 0.0.0.0 --port "${MCP_PORT}" &
 }
 
 if [ `id -u` -eq 0 ] && [ `id -g` -eq 0 ]; then
