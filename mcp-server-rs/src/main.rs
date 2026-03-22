@@ -31,6 +31,9 @@ struct ListNotesParams {
     /// 'asc' or 'desc'. Default 'desc'.
     #[serde(default)]
     order: Option<String>,
+    /// Maximum number of notes to return. Default 50.
+    #[serde(default)]
+    limit: Option<i64>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -230,8 +233,9 @@ impl MemlogServer {
     ) -> Result<CallToolResult, McpError> {
         let sort = p.sort.unwrap_or_else(|| "lastModified".to_string());
         let order = p.order.unwrap_or_else(|| "desc".to_string());
+        let limit_str = p.limit.unwrap_or(50).to_string();
         let data = self
-            .api_get("/api/search", &[("term", "*"), ("sort", &sort), ("order", &order)])
+            .api_get("/api/search", &[("term", "*"), ("sort", &sort), ("order", &order), ("limit", &limit_str)])
             .await?;
         let notes: Vec<Value> = data
             .as_array()
@@ -251,12 +255,9 @@ impl MemlogServer {
         let term = p.term;
         let sort = p.sort.unwrap_or_else(|| "score".to_string());
         let order = p.order.unwrap_or_else(|| "desc".to_string());
-        let limit_str = p.limit.map(|l| l.to_string());
-        let mut params: Vec<(&str, &str)> =
-            vec![("term", &term), ("sort", &sort), ("order", &order)];
-        if let Some(ref l) = limit_str {
-            params.push(("limit", l));
-        }
+        let limit_str = p.limit.unwrap_or(20).to_string();
+        let params: Vec<(&str, &str)> =
+            vec![("term", &term), ("sort", &sort), ("order", &order), ("limit", &limit_str)];
         let data = self.api_get("/api/search", &params).await?;
         Self::text(&data)
     }
@@ -275,13 +276,15 @@ impl MemlogServer {
         &self,
         Parameters(p): Parameters<CreateNoteParams>,
     ) -> Result<CallToolResult, McpError> {
-        let data = self
-            .api_post(
-                "/api/notes",
-                json!({"title": p.title, "content": p.content.unwrap_or_default()}),
-            )
-            .await?;
-        Self::text(&data)
+        let title = p.title.clone();
+        self.api_post(
+            "/api/notes",
+            json!({"title": p.title, "content": p.content.unwrap_or_default()}),
+        )
+        .await?;
+        Ok(CallToolResult::success(vec![Content::text(format!(
+            "Created '{title}'."
+        ))]))
     }
 
     #[tool(
@@ -291,17 +294,19 @@ impl MemlogServer {
         &self,
         Parameters(p): Parameters<AppendParams>,
     ) -> Result<CallToolResult, McpError> {
+        let title = p.title.clone();
         let existing = self.api_get(&format!("/api/notes/{}", p.title), &[]).await?;
         let current = existing["content"].as_str().unwrap_or("");
         let separator = if current.ends_with('\n') { "\n" } else { "\n\n" };
         let new_content = format!("{current}{separator}{}", p.content);
-        let data = self
-            .api_patch(
-                &format!("/api/notes/{}", p.title),
-                json!({"newContent": new_content}),
-            )
-            .await?;
-        Self::text(&data)
+        self.api_patch(
+            &format!("/api/notes/{}", p.title),
+            json!({"newContent": new_content}),
+        )
+        .await?;
+        Ok(CallToolResult::success(vec![Content::text(format!(
+            "Appended to '{title}'."
+        ))]))
     }
 
     #[tool(description = "Update an existing note's content or title.")]
@@ -309,6 +314,7 @@ impl MemlogServer {
         &self,
         Parameters(p): Parameters<UpdateParams>,
     ) -> Result<CallToolResult, McpError> {
+        let title = p.new_title.clone().unwrap_or_else(|| p.title.clone());
         let mut body = serde_json::Map::new();
         if let Some(c) = p.new_content {
             body.insert("newContent".into(), json!(c));
@@ -316,10 +322,11 @@ impl MemlogServer {
         if let Some(t) = p.new_title {
             body.insert("newTitle".into(), json!(t));
         }
-        let data = self
-            .api_patch(&format!("/api/notes/{}", p.title), Value::Object(body))
+        self.api_patch(&format!("/api/notes/{}", p.title), Value::Object(body))
             .await?;
-        Self::text(&data)
+        Ok(CallToolResult::success(vec![Content::text(format!(
+            "Updated '{title}'."
+        ))]))
     }
 
     #[tool(description = "Delete a note permanently.")]
