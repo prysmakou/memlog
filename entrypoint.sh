@@ -1,6 +1,6 @@
 #!/bin/sh
 
-[ "$EXEC_TOOL" ] || EXEC_TOOL=gosu
+[ "$EXEC_TOOL" ] || EXEC_TOOL=su-exec
 [ "$MEMLOG_HOST" ] || MEMLOG_HOST=0.0.0.0
 [ "$MEMLOG_PORT" ] || MEMLOG_PORT=8080
 [ "$MCP_PORT" ] || MCP_PORT=8090
@@ -28,12 +28,13 @@ if [ `id -u` -eq 0 ] && [ `id -g` -eq 0 ]; then
     start_mcp_server ${EXEC_TOOL} ${PUID}:${PGID}
 
     echo Starting Memlog as user ${PUID}...
-    exec ${EXEC_TOOL} ${PUID}:${PGID} ${APP_PATH}/memlog-server
+    exec ${EXEC_TOOL} ${PUID}:${PGID} uvicorn memlog.main:app \
+        --host ${MEMLOG_HOST} --port ${MEMLOG_PORT}
 
 else
     echo "A user was set by docker, skipping file permission changes."
     start_mcp_server
 
     echo Starting Memlog as user $(id -u)...
-    exec ${APP_PATH}/memlog-server
+    exec uvicorn memlog.main:app --host ${MEMLOG_HOST} --port ${MEMLOG_PORT}
 fi

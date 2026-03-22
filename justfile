@@ -30,6 +30,21 @@ mcp-rs:
 frontend:
     npm run dev
 
+# --- Python backend ---
+
+# Run the Python backend locally (port 8000, requires MEMLOG_PATH)
+backend-py:
+    cd server && MEMLOG_PATH=../tmp-notes MEMLOG_AUTH_TYPE=none \
+    uv run uvicorn memlog.main:app --reload --port 8000
+
+# Run Python backend tests
+test-py:
+    cd server && uv run pytest
+
+# Format Python (ruff)
+fmt-py:
+    cd server && uv run ruff format .
+
 # --- Test & Lint ---
 
 # Run all tests

@@ -17,3 +17,22 @@ repos:
         additional_dependencies:
           - prettier@3.8.1
           - prettier-plugin-tailwindcss@0.6.14
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.0
+    hooks:
+      - id: ruff
+        files: ^server/
+      - id: ruff-format
+        files: ^server/
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.14.1
+    hooks:
+      - id: mypy
+        files: ^server/memlog/
+        additional_dependencies:
+          - types-aiofiles>=24.1
+          - types-python-jose>=3.3
+          - pydantic>=2.0
+          - fastapi>=0.118
