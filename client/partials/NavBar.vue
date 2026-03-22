@@ -103,13 +103,19 @@ async function copyMcpToken() {
   const token = getStoredToken();
   try {
     await navigator.clipboard.writeText(token);
-    toast.add(
-      getToastOptions("Token copied to clipboard", "MCP Token", "success"),
-    );
   } catch {
-    // Fallback for non-HTTPS: show in a prompt so the user can copy manually
-    prompt("Copy your MCP token:", token);
+    // Fallback for non-HTTPS: insert a hidden textarea and use execCommand
+    const el = document.createElement("textarea");
+    el.value = token;
+    el.style.cssText = "position:fixed;opacity:0";
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand("copy");
+    document.body.removeChild(el);
   }
+  toast.add(
+    getToastOptions("Token copied to clipboard", "MCP Token", "success"),
+  );
 }
 
 function logOut() {
