@@ -1,11 +1,11 @@
 [![Build](https://github.com/prysmakou/memlog/actions/workflows/build.yml/badge.svg)](https://github.com/prysmakou/memlog/actions/workflows/build.yml)
 [![Docker](https://ghcr-badge.egpl.dev/prysmakou/memlog/latest_tag?trim=major&label=docker)](https://github.com/prysmakou/memlog/pkgs/container/memlog)
-[![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)](https://www.rust-lang.org/)
+[![Python](https://img.shields.io/badge/python-3.13%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 Markdown notes for humans, MCP-native for AI agents.
 
-A self-hosted, database-less note-taking app. Notes are plain `.md` files on disk. The backend is written in Rust (axum + tantivy), the frontend is Vue 3. The Docker image ships both a web UI and an MCP server for AI agents.
+A self-hosted, database-less note-taking app. Notes are plain `.md` files on disk. The backend is written in Python (FastAPI + Whoosh), the frontend is Vue 3. The Docker image ships both a web UI and an MCP server for AI agents.
 
 > Inspired by [flatnotes](https://github.com/dullage/flatnotes) by dullage.
 
@@ -49,23 +49,24 @@ See the [MCP Server wiki page](https://github.com/prysmakou/memlog/wiki/MCP-Serv
 
 ## Development
 
-Install [just](https://just.systems/man/en/packages.html) and [Rust](https://rustup.rs/), then:
+Install [just](https://just.systems/man/en/packages.html), [uv](https://docs.astral.sh/uv/), and Node 22, then:
 
 ```bash
-just install   # npm deps + git hooks
-just backend   # Rust backend on :8000 (auth disabled, notes in ./tmp-notes)
-just frontend  # Vue dev server on :8080 (proxies API to :8000)
-just test      # cargo test (42 tests)
-just build     # build Docker image (tag=local)
-just run       # run Docker image locally (auth disabled)
+just install      # npm deps + git hooks
+just backend-py   # Python backend on :8000 (auth disabled, notes in ./tmp-notes)
+just frontend     # Vue dev server on :8080 (proxies API to :8000)
+just test-py      # pytest (50 tests)
+just test-mcp     # MCP server tests (13 tests)
+just build        # build Docker image (tag=local)
+just run          # run Docker image locally (auth disabled)
 ```
 
 ## Architecture
 
 ```
-client/        Vue 3 SPA (Vite)
-server-rs/     Rust backend (axum, tantivy, tokio)
-mcp-server-rs/ Rust MCP server (rmcp, Streamable HTTP)
+client/       Vue 3 SPA (Vite)
+server/       Python backend (FastAPI, Whoosh)
+mcp-server/   Python MCP server (FastMCP, Streamable HTTP)
 ```
 
-Notes are stored as plain `.md` files in `MEMLOG_PATH`. Full-text search uses a [tantivy](https://github.com/quickwit-oss/tantivy) index stored in `MEMLOG_PATH/.memlog/`. There is no database.
+Notes are stored as plain `.md` files in `MEMLOG_PATH`. Full-text search uses a [Whoosh](https://whoosh.readthedocs.io/) index stored in `MEMLOG_PATH/.memlog/`. There is no database.
