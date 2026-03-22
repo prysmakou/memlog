@@ -5,6 +5,7 @@ from typing import Any
 
 import httpx
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from starlette.responses import PlainTextResponse
 
 _BASE_URL = (os.environ.get("MEMLOG_URL") or "http://localhost:8080").rstrip("/")
@@ -40,6 +41,9 @@ mcp = FastMCP(
         "Tools: list_notes, search_notes, get_note, create_note, "
         "append_to_note, update_note, delete_note, list_tags."
     ),
+    # DNS rebinding protection is redundant when bearer token auth is enforced
+    # by the middleware — and it blocks legitimate network requests.
+    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
 )
 
 
