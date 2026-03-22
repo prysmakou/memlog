@@ -5,10 +5,7 @@ from typing import Any
 
 import httpx
 from mcp.server.fastmcp import FastMCP
-from starlette.applications import Starlette
-from starlette.requests import Request
 from starlette.responses import PlainTextResponse
-from starlette.routing import Mount, Route
 
 _BASE_URL = (os.environ.get("MEMLOG_URL") or "http://localhost:8080").rstrip("/")
 
@@ -20,12 +17,17 @@ class _BearerAuthMiddleware:
         self._app = app
 
     async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
-        if scope["type"] == "http" and scope.get("path") != "/health":
+        if scope["type"] == "http":
+            path = scope.get("path", "")
+            if path == "/health":
+                await PlainTextResponse("OK")(scope, receive, send)
+                return
             headers = dict(scope.get("headers", []))
             auth = headers.get(b"authorization", b"").decode()
             if not auth.startswith("Bearer ") or not auth[len("Bearer ") :].strip():
-                response = PlainTextResponse("Unauthorized", status_code=401)
-                await response(scope, receive, send)
+                await PlainTextResponse("Unauthorized", status_code=401)(
+                    scope, receive, send
+                )
                 return
             _request_token.set(auth[len("Bearer ") :])
         await self._app(scope, receive, send)
@@ -156,16 +158,5 @@ async def list_tags() -> str:
     return json.dumps(data, indent=2)
 
 
-async def _health(request: Request) -> PlainTextResponse:
-    return PlainTextResponse("OK")
-
-
 # ASGI app for `uvicorn memlog_mcp.main:app`
-app = _BearerAuthMiddleware(
-    Starlette(
-        routes=[
-            Route("/health", _health),
-            Mount("/", mcp.streamable_http_app()),
-        ]
-    )
-)
+app = _BearerAuthMiddleware(mcp.streamable_http_app())
