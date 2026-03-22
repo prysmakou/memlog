@@ -22,6 +22,7 @@
 
 <script setup>
 import {
+  mdilClipboard,
   mdilLogout,
   mdilMagnify,
   mdilMenu,
@@ -38,7 +39,7 @@ import PrimeMenu from "../components/PrimeMenu.vue";
 import { authTypes, params, searchSortOptions } from "../constants.js";
 import { useGlobalStore } from "../globalStore.js";
 import { toggleTheme } from "../helpers.js";
-import { clearStoredToken } from "../tokenStorage.js";
+import { clearStoredToken, getStoredToken } from "../tokenStorage.js";
 
 const globalStore = useGlobalStore();
 const menu = ref();
@@ -73,6 +74,12 @@ const menuItems = [
     label: "Toggle Theme",
     icon: mdilMonitor,
     command: toggleTheme,
+  },
+  {
+    label: "Copy MCP Token",
+    icon: mdilClipboard,
+    command: () => navigator.clipboard.writeText(getStoredToken()),
+    visible: () => showLogOutButton() && !!getStoredToken(),
   },
   {
     separator: true,

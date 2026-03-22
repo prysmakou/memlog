@@ -2,21 +2,21 @@ import json
 
 import pytest
 import respx
-from httpx import Response
+from httpx import AsyncClient, ASGITransport, Response
 
 import memlog_mcp.main as m
 
 
 BASE = "http://localhost:8080"
+TOKEN = "test-jwt-token"
 
 
 @pytest.fixture(autouse=True)
-def reset_token():
-    """Reset cached token between tests so auth state doesn't bleed across."""
-    original = m._cached_token
-    m._cached_token = None
+def set_request_token():
+    """Set a token in the context var so tool calls include auth headers."""
+    token = m._request_token.set(TOKEN)
     yield
-    m._cached_token = original
+    m._request_token.reset(token)
 
 
 # ── list_notes ────────────────────────────────────────────────────────────────
@@ -58,7 +58,9 @@ async def test_list_notes_passes_sort_params() -> None:
 @respx.mock
 async def test_search_notes_passes_term() -> None:
     payload = [{"title": "rust", "lastModified": 1.0, "score": 0.9}]
-    route = respx.get(f"{BASE}/api/search").mock(return_value=Response(200, json=payload))
+    route = respx.get(f"{BASE}/api/search").mock(
+        return_value=Response(200, json=payload)
+    )
     result = await m.search_notes(term="rust")
     assert json.loads(result) == payload
     assert route.calls[0].request.url.params["term"] == "rust"
@@ -81,11 +83,16 @@ async def test_get_note_returns_json() -> None:
 @respx.mock
 async def test_create_note_posts_and_returns_message() -> None:
     route = respx.post(f"{BASE}/api/notes").mock(
-        return_value=Response(201, json={"title": "new", "content": "", "lastModified": 1.0})
+        return_value=Response(
+            201, json={"title": "new", "content": "", "lastModified": 1.0}
+        )
     )
     result = await m.create_note("new", "hello")
     assert result == "Created 'new'."
-    assert json.loads(route.calls[0].request.content) == {"title": "new", "content": "hello"}
+    assert json.loads(route.calls[0].request.content) == {
+        "title": "new",
+        "content": "hello",
+    }
 
 
 # ── append_to_note ────────────────────────────────────────────────────────────
@@ -94,10 +101,19 @@ async def test_create_note_posts_and_returns_message() -> None:
 @respx.mock
 async def test_append_to_note_concatenates_content() -> None:
     respx.get(f"{BASE}/api/notes/my-note").mock(
-        return_value=Response(200, json={"title": "my-note", "content": "existing", "lastModified": 1.0})
+        return_value=Response(
+            200, json={"title": "my-note", "content": "existing", "lastModified": 1.0}
+        )
     )
     patch_route = respx.patch(f"{BASE}/api/notes/my-note").mock(
-        return_value=Response(200, json={"title": "my-note", "content": "existing\n\nnew", "lastModified": 2.0})
+        return_value=Response(
+            200,
+            json={
+                "title": "my-note",
+                "content": "existing\n\nnew",
+                "lastModified": 2.0,
+            },
+        )
     )
     result = await m.append_to_note("my-note", "new")
     assert result == "Appended to 'my-note'."
@@ -108,10 +124,15 @@ async def test_append_to_note_concatenates_content() -> None:
 @respx.mock
 async def test_append_single_newline_when_content_ends_with_newline() -> None:
     respx.get(f"{BASE}/api/notes/note").mock(
-        return_value=Response(200, json={"title": "note", "content": "line\n", "lastModified": 1.0})
+        return_value=Response(
+            200, json={"title": "note", "content": "line\n", "lastModified": 1.0}
+        )
     )
     patch_route = respx.patch(f"{BASE}/api/notes/note").mock(
-        return_value=Response(200, json={"title": "note", "content": "line\nappended", "lastModified": 2.0})
+        return_value=Response(
+            200,
+            json={"title": "note", "content": "line\nappended", "lastModified": 2.0},
+        )
     )
     await m.append_to_note("note", "appended")
     body = json.loads(patch_route.calls[0].request.content)
@@ -125,7 +146,9 @@ async def test_append_single_newline_when_content_ends_with_newline() -> None:
 @respx.mock
 async def test_update_note_content() -> None:
     route = respx.patch(f"{BASE}/api/notes/old").mock(
-        return_value=Response(200, json={"title": "old", "content": "new content", "lastModified": 2.0})
+        return_value=Response(
+            200, json={"title": "old", "content": "new content", "lastModified": 2.0}
+        )
     )
     result = await m.update_note("old", new_content="new content")
     assert result == "Updated 'old'."
@@ -135,7 +158,9 @@ async def test_update_note_content() -> None:
 @respx.mock
 async def test_update_note_rename() -> None:
     route = respx.patch(f"{BASE}/api/notes/old").mock(
-        return_value=Response(200, json={"title": "renamed", "content": "", "lastModified": 2.0})
+        return_value=Response(
+            200, json={"title": "renamed", "content": "", "lastModified": 2.0}
+        )
     )
     result = await m.update_note("old", new_title="renamed")
     assert result == "Updated 'renamed'."
@@ -158,24 +183,56 @@ async def test_delete_note() -> None:
 
 @respx.mock
 async def test_list_tags() -> None:
-    respx.get(f"{BASE}/api/tags").mock(return_value=Response(200, json=["python", "rust"]))
+    respx.get(f"{BASE}/api/tags").mock(
+        return_value=Response(200, json=["python", "rust"])
+    )
     result = await m.list_tags()
     assert json.loads(result) == ["python", "rust"]
 
 
-# ── auth: bearer token ────────────────────────────────────────────────────────
+# ── auth: token forwarded to backend ──────────────────────────────────────────
 
 
 @respx.mock
-async def test_static_token_sent_as_bearer() -> None:
-    m._cached_token = "mytoken"
+async def test_token_sent_as_bearer_to_backend() -> None:
     route = respx.get(f"{BASE}/api/tags").mock(return_value=Response(200, json=[]))
     await m.list_tags()
-    assert route.calls[0].request.headers["authorization"] == "Bearer mytoken"
+    assert route.calls[0].request.headers["authorization"] == f"Bearer {TOKEN}"
 
 
 @respx.mock
 async def test_no_auth_header_when_no_token() -> None:
+    m._request_token.set(None)
     route = respx.get(f"{BASE}/api/tags").mock(return_value=Response(200, json=[]))
     await m.list_tags()
     assert "authorization" not in route.calls[0].request.headers
+
+
+# ── auth middleware ────────────────────────────────────────────────────────────
+
+
+async def test_middleware_rejects_missing_token() -> None:
+    async with AsyncClient(
+        transport=ASGITransport(app=m.app), base_url="http://test"
+    ) as client:
+        r = await client.get("/health")
+        assert r.status_code == 200
+
+        r = await client.post("/mcp")
+        assert r.status_code == 401
+
+
+async def test_middleware_rejects_empty_bearer() -> None:
+    async with AsyncClient(
+        transport=ASGITransport(app=m.app), base_url="http://test"
+    ) as client:
+        r = await client.post("/mcp", headers={"Authorization": "Bearer "})
+        assert r.status_code == 401
+
+
+async def test_middleware_health_exempt() -> None:
+    async with AsyncClient(
+        transport=ASGITransport(app=m.app), base_url="http://test"
+    ) as client:
+        r = await client.get("/health")
+        assert r.status_code == 200

@@ -1,6 +1,7 @@
-import asyncio
 import json
 import os
+from contextvars import ContextVar
+from typing import Any
 
 import httpx
 from mcp.server.fastmcp import FastMCP
@@ -10,12 +11,25 @@ from starlette.responses import PlainTextResponse
 from starlette.routing import Mount, Route
 
 _BASE_URL = (os.environ.get("MEMLOG_URL") or "http://localhost:8080").rstrip("/")
-_STATIC_TOKEN = (os.environ.get("MEMLOG_TOKEN") or "").strip() or None
-_USERNAME = (os.environ.get("MEMLOG_USERNAME") or "").strip() or None
-_PASSWORD = (os.environ.get("MEMLOG_PASSWORD") or "").strip() or None
 
-_cached_token: str | None = _STATIC_TOKEN
-_login_lock = asyncio.Lock()
+_request_token: ContextVar[str | None] = ContextVar("_request_token", default=None)
+
+
+class _BearerAuthMiddleware:
+    def __init__(self, app: Any) -> None:
+        self._app = app
+
+    async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
+        if scope["type"] == "http" and scope.get("path") != "/health":
+            headers = dict(scope.get("headers", []))
+            auth = headers.get(b"authorization", b"").decode()
+            if not auth.startswith("Bearer ") or not auth[len("Bearer ") :].strip():
+                response = PlainTextResponse("Unauthorized", status_code=401)
+                await response(scope, receive, send)
+                return
+            _request_token.set(auth[len("Bearer ") :])
+        await self._app(scope, receive, send)
+
 
 mcp = FastMCP(
     "Memlog",
@@ -27,74 +41,49 @@ mcp = FastMCP(
 )
 
 
-async def _bearer() -> str | None:
-    global _cached_token
-    if _cached_token:
-        return _cached_token
-    if not (_USERNAME and _PASSWORD):
-        return None
-    async with _login_lock:
-        # Re-check after acquiring the lock — another coroutine may have already logged in
-        if _cached_token:
-            return _cached_token
-        async with httpx.AsyncClient() as client:
-            r = await client.post(
-                f"{_BASE_URL}/api/token",
-                json={"username": _USERNAME, "password": _PASSWORD},
-            )
-            r.raise_for_status()
-            _cached_token = r.json()["access_token"]
-    return _cached_token
-
-
-def _headers(token: str | None) -> dict[str, str]:
+def _headers() -> dict[str, str]:
+    token = _request_token.get()
     return {"Authorization": f"Bearer {token}"} if token else {}
 
 
 async def _get(path: str, params: dict | None = None) -> object:
-    token = await _bearer()
     async with httpx.AsyncClient() as client:
-        r = await client.get(
-            f"{_BASE_URL}{path}", params=params, headers=_headers(token)
-        )
+        r = await client.get(f"{_BASE_URL}{path}", params=params, headers=_headers())
         r.raise_for_status()
         return r.json()
 
 
 async def _post(path: str, body: dict) -> object:
-    token = await _bearer()
     async with httpx.AsyncClient() as client:
-        r = await client.post(
-            f"{_BASE_URL}{path}", json=body, headers=_headers(token)
-        )
+        r = await client.post(f"{_BASE_URL}{path}", json=body, headers=_headers())
         r.raise_for_status()
         return r.json()
 
 
 async def _patch(path: str, body: dict) -> object:
-    token = await _bearer()
     async with httpx.AsyncClient() as client:
-        r = await client.patch(
-            f"{_BASE_URL}{path}", json=body, headers=_headers(token)
-        )
+        r = await client.patch(f"{_BASE_URL}{path}", json=body, headers=_headers())
         r.raise_for_status()
         return r.json()
 
 
 async def _delete(path: str) -> None:
-    token = await _bearer()
     async with httpx.AsyncClient() as client:
-        r = await client.delete(f"{_BASE_URL}{path}", headers=_headers(token))
+        r = await client.delete(f"{_BASE_URL}{path}", headers=_headers())
         r.raise_for_status()
 
 
-@mcp.tool(description="List all notes with title and lastModified timestamp (no content).")
+@mcp.tool(
+    description="List all notes with title and lastModified timestamp (no content)."
+)
 async def list_notes(
     sort: str = "lastModified",
     order: str = "desc",
     limit: int = 50,
 ) -> str:
-    data = await _get("/api/search", {"term": "*", "sort": sort, "order": order, "limit": limit})
+    data = await _get(
+        "/api/search", {"term": "*", "sort": sort, "order": order, "limit": limit}
+    )
     notes = [{"title": n["title"], "lastModified": n["lastModified"]} for n in data]  # type: ignore[index,union-attr,attr-defined]
     return json.dumps(notes, indent=2)
 
@@ -106,7 +95,9 @@ async def search_notes(
     order: str = "desc",
     limit: int = 20,
 ) -> str:
-    data = await _get("/api/search", {"term": term, "sort": sort, "order": order, "limit": limit})
+    data = await _get(
+        "/api/search", {"term": term, "sort": sort, "order": order, "limit": limit}
+    )
     return json.dumps(data, indent=2)
 
 
@@ -132,7 +123,9 @@ async def append_to_note(title: str, content: str) -> str:
     existing = await _get(f"/api/notes/{title}")
     current: str = existing["content"]  # type: ignore[index]
     separator = "\n" if current.endswith("\n") else "\n\n"
-    await _patch(f"/api/notes/{title}", {"newContent": f"{current}{separator}{content}"})
+    await _patch(
+        f"/api/notes/{title}", {"newContent": f"{current}{separator}{content}"}
+    )
     return f"Appended to '{title}'."
 
 
@@ -168,9 +161,11 @@ async def _health(request: Request) -> PlainTextResponse:
 
 
 # ASGI app for `uvicorn memlog_mcp.main:app`
-app = Starlette(
-    routes=[
-        Route("/health", _health),
-        Mount("/", mcp.streamable_http_app()),
-    ]
+app = _BearerAuthMiddleware(
+    Starlette(
+        routes=[
+            Route("/health", _health),
+            Mount("/", mcp.streamable_http_app()),
+        ]
+    )
 )
