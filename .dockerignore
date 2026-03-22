@@ -2,8 +2,6 @@
 **
 
 # Include the following
-!.htmlnanorc
-!Cargo.toml
 !client/**
 !entrypoint.sh
 !healthcheck.sh
@@ -12,5 +10,5 @@
 !postcss.config.js
 !tailwind.config.js
 !vite.config.js
-!mcp-server-rs/**
-!server-rs/**
+!mcp-server/**
+!server/**
