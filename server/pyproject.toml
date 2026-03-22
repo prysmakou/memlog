@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "memlog"
-version = "0.0.4-rc.3"
+version = "0.0.4-rc.4"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]>=0.118",
