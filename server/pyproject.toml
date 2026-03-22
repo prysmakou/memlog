@@ -1,6 +1,6 @@
 [project]
 name = "memlog"
-version = "0.0.1"
+version = "0.0.3-rc.1"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]>=0.118",
