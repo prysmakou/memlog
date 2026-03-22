@@ -9,12 +9,12 @@ install:
     pre-commit install
 
 # Run the Python backend locally (port 8000, requires MEMLOG_PATH)
-backend-py:
+backend:
     cd server && MEMLOG_PATH=../tmp-notes MEMLOG_AUTH_TYPE=none \
     uv run uvicorn memlog.main:app --reload --port 8000
 
 # Run the Python MCP server locally (port 8090, proxies to backend on :8000)
-mcp-py:
+mcp:
     cd mcp-server && MEMLOG_URL=http://localhost:8000 \
     uv run uvicorn memlog_mcp.main:app --reload --port 8090
 
@@ -25,7 +25,7 @@ frontend:
 # --- Test & Lint ---
 
 # Run Python backend tests
-test-py:
+test:
     cd server && uv run pytest
 
 # Run MCP server tests
@@ -33,7 +33,7 @@ test-mcp:
     cd mcp-server && uv run pytest
 
 # Format Python (ruff)
-fmt-py:
+fmt:
     cd server && uv run ruff format .
     cd mcp-server && uv run ruff format .
 

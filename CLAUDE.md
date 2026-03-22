@@ -23,9 +23,9 @@ Formatting: `npx prettier --write .`
 ### Backend (`/server`)
 
 ```bash
-just backend-py   # Python backend on :8000 (auth disabled, notes in ./tmp-notes)
-just test-py      # pytest (50 tests)
-just mcp-py       # MCP server on :8090 (proxies to :8000)
+just backend      # Python backend on :8000 (auth disabled, notes in ./tmp-notes)
+just test         # pytest (50 tests)
+just mcp          # MCP server on :8090 (proxies to :8000)
 just test-mcp     # MCP server tests (13 tests)
 ```
 

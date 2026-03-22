@@ -53,9 +53,9 @@ Install [just](https://just.systems/man/en/packages.html), [uv](https://docs.ast
 
 ```bash
 just install      # npm deps + git hooks
-just backend-py   # Python backend on :8000 (auth disabled, notes in ./tmp-notes)
+just backend      # Python backend on :8000 (auth disabled, notes in ./tmp-notes)
 just frontend     # Vue dev server on :8080 (proxies API to :8000)
-just test-py      # pytest (50 tests)
+just test         # pytest (50 tests)
 just test-mcp     # MCP server tests (13 tests)
 just build        # build Docker image (tag=local)
 just run          # run Docker image locally (auth disabled)
