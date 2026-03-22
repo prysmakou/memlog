@@ -47,6 +47,9 @@ ENV MEMLOG_PORT=8080
 ENV APP_PATH=/app
 ENV MEMLOG_PATH=/data
 
+# Whoosh uses invalid escape sequences in its source — harmless but noisy on Python 3.12+
+ENV PYTHONWARNINGS=ignore::SyntaxWarning:whoosh
+
 RUN apk add --no-cache su-exec curl && \
     mkdir -p ${APP_PATH} ${MEMLOG_PATH}
 
