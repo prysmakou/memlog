@@ -22,9 +22,9 @@ repos:
     rev: v0.9.0
     hooks:
       - id: ruff
-        files: ^server/
+        files: ^(server|mcp-server)/
       - id: ruff-format
-        files: ^server/
+        files: ^(server|mcp-server)/
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.14.1
@@ -36,3 +36,8 @@ repos:
           - types-python-jose>=3.3
           - pydantic>=2.0
           - fastapi>=0.118
+      - id: mypy
+        files: ^mcp-server/memlog_mcp/
+        additional_dependencies:
+          - httpx>=0.27
+          - mcp>=1.3
