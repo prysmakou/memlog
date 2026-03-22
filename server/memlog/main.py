@@ -189,7 +189,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
 
     for spa_path in ("/", "/login", "/search", "/new", "/note/{title:path}"):
         full = f"{cfg.path_prefix}{spa_path}"
-        app.add_api_route(full, lambda req: _spa(), include_in_schema=False)  # noqa: B023
+        app.add_api_route(full, lambda: _spa(), include_in_schema=False)  # noqa: B023
 
     # ── Static files ──────────────────────────────────────────────────────────
 
