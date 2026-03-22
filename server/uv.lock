@@ -541,8 +541,8 @@ wheels = [
 
 [[package]]
 name = "memlog"
-version = "0.0.1"
-source = { virtual = "." }
+version = "0.0.3rc1"
+source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
     { name = "fastapi", extra = ["standard"] },
