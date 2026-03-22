@@ -4,6 +4,10 @@ import os
 
 import httpx
 from mcp.server.fastmcp import FastMCP
+from starlette.applications import Starlette
+from starlette.requests import Request
+from starlette.responses import PlainTextResponse
+from starlette.routing import Mount, Route
 
 _BASE_URL = (os.environ.get("MEMLOG_URL") or "http://localhost:8080").rstrip("/")
 _STATIC_TOKEN = (os.environ.get("MEMLOG_TOKEN") or "").strip() or None
@@ -159,5 +163,14 @@ async def list_tags() -> str:
     return json.dumps(data, indent=2)
 
 
+async def _health(request: Request) -> PlainTextResponse:
+    return PlainTextResponse("OK")
+
+
 # ASGI app for `uvicorn memlog_mcp.main:app`
-app = mcp.streamable_http_app()
+app = Starlette(
+    routes=[
+        Route("/health", _health),
+        Mount("/", mcp.streamable_http_app()),
+    ]
+)
