@@ -45,7 +45,7 @@ jobs:
         with:
           python-version: "3.13"
       - run: pip install uv
-      - run: cd server && uv run pytest
+      - run: cd server && uv run --group qdrant pytest
       - run: cd mcp-server && uv run pytest
 
   frontend:

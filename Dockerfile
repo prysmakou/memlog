@@ -31,7 +31,8 @@ WORKDIR /build
 COPY server/ ./server/
 COPY mcp-server/ ./mcp-server/
 RUN pip install --no-cache-dir uv && \
-    uv pip install --system --no-cache ./server ./mcp-server
+    uv pip install --system --no-cache ./server ./mcp-server && \
+    uv pip install --system --no-cache "qdrant-client>=1.12"
 
 # ── Stage 3: Runtime ──────────────────────────────────────────────────────────
 FROM python:3.13-alpine
