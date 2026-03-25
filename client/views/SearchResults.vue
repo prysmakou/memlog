@@ -91,6 +91,7 @@ const sortByName = computed(() => {
 });
 
 function init() {
+  if (!props.searchTerm) return;
   loadingIndicator.value.setLoading();
   getNotes(props.searchTerm, undefined, undefined, undefined, semantic.value)
     .then((data) => {

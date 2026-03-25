@@ -63,7 +63,8 @@ class QdrantSearchIndex:
             r = await http.post(
                 f"{self._ollama_url}/api/embeddings",
                 json={"model": self._model, "prompt": text},
-                timeout=60.0,
+                # First call can be slow while Ollama loads the model into memory
+                timeout=300.0,
             )
             r.raise_for_status()
             return r.json()["embedding"]  # type: ignore[no-any-return]
