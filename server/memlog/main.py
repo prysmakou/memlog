@@ -55,6 +55,12 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     auth = Authenticator(cfg)
     Auth = Annotated[str | None, Depends(auth)]
 
+    qdrant_index = None
+    if cfg.semantic_search_available:
+        from .search_qdrant import QdrantSearchIndex
+
+        qdrant_index = QdrantSearchIndex(cfg)
+
     # ── Health & version ──────────────────────────────────────────────────────
 
     @app.get("/health", include_in_schema=False)
@@ -75,6 +81,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             quick_access_term=cfg.quick_access_term,
             quick_access_sort=cfg.quick_access_sort,
             quick_access_limit=cfg.quick_access_limit,
+            semantic_search_available=cfg.semantic_search_available,
         )
 
     # ── Auth ──────────────────────────────────────────────────────────────────
@@ -115,7 +122,10 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         sort: str = "score",
         order: str = "desc",
         limit: int = 1000,
+        semantic: bool = False,
     ) -> list[SearchResult]:
+        if semantic and qdrant_index is not None:
+            return await qdrant_index.search(term, sort=sort, order=order, limit=limit)
         return notes.search(term, sort=sort, order=order, limit=limit)
 
     @app.get(f"{cfg.path_prefix}/api/tags", response_model=list[str], tags=["notes"])

@@ -361,7 +361,7 @@ wheels = [
 
 [[package]]
 name = "memlog-mcp"
-version = "0.0.4rc1"
+version = "0.0.4rc4"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },

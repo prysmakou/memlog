@@ -4,8 +4,14 @@
     <SearchInput :initialSearchTerm="props.searchTerm" class="mb-2" />
 
     <LoadingIndicator ref="loadingIndicator" class="flex-1">
-      <!-- Sort By -->
-      <div class="flex justify-end">
+      <!-- Sort By + Semantic toggle -->
+      <div class="flex justify-end gap-1">
+        <Toggle
+          v-if="globalStore.config.semanticSearchAvailable"
+          label="Semantic"
+          :isOn="semantic"
+          @click="semantic = !semantic"
+        />
         <CustomButton
           :label="`Sort By: ${sortByName}`"
           :iconPath="mdiSort"
@@ -54,7 +60,9 @@ import CustomButton from "../components/CustomButton.vue";
 import LoadingIndicator from "../components/LoadingIndicator.vue";
 import PrimeMenu from "../components/PrimeMenu.vue";
 import Tag from "../components/Tag.vue";
+import Toggle from "../components/Toggle.vue";
 import { params, searchSortOptions } from "../constants.js";
+import { useGlobalStore } from "../globalStore.js";
 import SearchInput from "../partials/SearchInput.vue";
 
 const props = defineProps({
@@ -65,9 +73,11 @@ const props = defineProps({
   },
 });
 
+const globalStore = useGlobalStore();
 const loadingIndicator = ref();
 const results = ref([]);
 const router = useRouter();
+const semantic = ref(false);
 const sortMenu = ref();
 const toast = useToast();
 
@@ -82,7 +92,7 @@ const sortByName = computed(() => {
 
 function init() {
   loadingIndicator.value.setLoading();
-  getNotes(props.searchTerm)
+  getNotes(props.searchTerm, undefined, undefined, undefined, semantic.value)
     .then((data) => {
       results.value = sortResults(data);
       if (results.value.length > 0) {
@@ -149,6 +159,7 @@ function toggleSortMenu(event) {
 
 watch(() => props.searchTerm, init);
 watch(() => props.sortBy, reSortResults);
+watch(semantic, init);
 onMounted(init);
 </script>
 

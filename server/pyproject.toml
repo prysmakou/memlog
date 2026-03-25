@@ -17,6 +17,12 @@ dependencies = [
 ]
 
 [dependency-groups]
+qdrant = [
+    "llama-index>=0.12",
+    "llama-index-vector-stores-qdrant>=0.4",
+    "llama-index-embeddings-ollama>=0.4",
+    "qdrant-client>=1.12",
+]
 dev = [
     "pytest>=8",
     "pytest-asyncio>=0.24",

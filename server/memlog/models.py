@@ -65,6 +65,7 @@ class ConfigResponse(_CamelModel):
     quick_access_term: str
     quick_access_sort: str
     quick_access_limit: int
+    semantic_search_available: bool = False
 
 
 # ── Version ───────────────────────────────────────────────────────────────────
