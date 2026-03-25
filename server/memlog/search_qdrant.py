@@ -5,17 +5,23 @@ import uuid
 from typing import Any
 
 import httpx
-from qdrant_client import AsyncQdrantClient  # type: ignore[import-untyped]
-from qdrant_client.models import (  # type: ignore[import-untyped]
-    Distance,
-    FieldCondition,
-    Filter,
-    FilterSelector,
-    MatchAny,
-    MatchValue,
-    PointStruct,
-    VectorParams,
-)
+
+try:
+    from qdrant_client import AsyncQdrantClient  # type: ignore[import-untyped]
+    from qdrant_client.models import (  # type: ignore[import-untyped]
+        Distance,
+        FieldCondition,
+        Filter,
+        FilterSelector,
+        MatchAny,
+        MatchValue,
+        PointStruct,
+        VectorParams,
+    )
+
+    _QDRANT_AVAILABLE = True
+except ImportError:
+    _QDRANT_AVAILABLE = False
 
 from .config import AppConfig
 from .models import SearchResult
@@ -37,6 +43,11 @@ def _note_id(filename: str) -> str:
 
 class QdrantSearchIndex:
     def __init__(self, config: AppConfig, _sync_cooldown: float = 10.0) -> None:
+        if not _QDRANT_AVAILABLE:
+            raise ImportError(
+                "qdrant_client is not installed. "
+                "Enable semantic search with: uv sync --group qdrant"
+            )
         self._root = config.notes_path
         self._ollama_url = config.ollama_url.rstrip("/")
         self._model = config.embedding_model

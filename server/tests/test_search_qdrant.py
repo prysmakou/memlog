@@ -6,8 +6,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from memlog.config import AppConfig, AuthType
-from memlog.search_qdrant import QdrantSearchIndex
+pytest.importorskip("qdrant_client")
+
+from memlog.config import AppConfig, AuthType  # noqa: E402
+from memlog.search_qdrant import QdrantSearchIndex  # noqa: E402
 
 FAKE_VEC = [0.1] * 768
 

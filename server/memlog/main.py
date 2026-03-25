@@ -59,7 +59,10 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     if cfg.semantic_search_available:
         from .search_qdrant import QdrantSearchIndex
 
-        qdrant_index = QdrantSearchIndex(cfg)
+        try:
+            qdrant_index = QdrantSearchIndex(cfg)
+        except ImportError as exc:
+            raise RuntimeError(str(exc)) from None
 
     # ── Health & version ──────────────────────────────────────────────────────
 
