@@ -82,13 +82,21 @@ class QdrantSearchIndex:
     async def _ensure_collection(self) -> None:
         if self._initialized:
             return
+        sample_vec = await self._embed("test")
+        expected_size = len(sample_vec)
         collections = await self._client.get_collections()
         names = {c.name for c in collections.collections}
+        if self._collection in names:
+            info = await self._client.get_collection(self._collection)
+            actual_size = info.config.params.vectors.size  # type: ignore[union-attr]
+            if actual_size != expected_size:
+                # Embedding model changed (e.g. Ollama→Voyage); recreate collection
+                await self._client.delete_collection(self._collection)
+                names = set()
         if self._collection not in names:
-            sample_vec = await self._embed("test")
             await self._client.create_collection(
                 self._collection,
-                vectors_config=VectorParams(size=len(sample_vec), distance=Distance.COSINE),
+                vectors_config=VectorParams(size=expected_size, distance=Distance.COSINE),
             )
         self._initialized = True
 
