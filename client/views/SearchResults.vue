@@ -3,24 +3,24 @@
     <!-- Search Input -->
     <SearchInput :initialSearchTerm="props.searchTerm" class="mb-2" />
 
-    <LoadingIndicator ref="loadingIndicator" class="flex-1">
-      <!-- Sort By + Semantic toggle -->
-      <div class="flex justify-end gap-1">
-        <Toggle
-          v-if="globalStore.config.semanticSearchAvailable"
-          label="Semantic"
-          :isOn="semantic"
-          @click="semantic = !semantic"
-        />
-        <CustomButton
-          :label="`Sort By: ${sortByName}`"
-          :iconPath="mdiSort"
-          class="mb-1"
-          @click="toggleSortMenu"
-        />
-        <PrimeMenu ref="sortMenu" :model="menuItems" :popup="true" />
-      </div>
+    <!-- Sort By + Semantic toggle -->
+    <div class="flex justify-end gap-1">
+      <Toggle
+        v-if="globalStore.config.semanticSearchAvailable"
+        label="Semantic"
+        :isOn="semantic"
+        @click="semantic = !semantic"
+      />
+      <CustomButton
+        :label="`Sort By: ${sortByName}`"
+        :iconPath="mdiSort"
+        class="mb-1"
+        @click="toggleSortMenu"
+      />
+      <PrimeMenu ref="sortMenu" :model="menuItems" :popup="true" />
+    </div>
 
+    <LoadingIndicator ref="loadingIndicator" class="flex-1">
       <!-- Search Results -->
       <div
         v-for="result in results"
