@@ -30,7 +30,7 @@ from .notes import NoteStore
 
 _VERSION = importlib.metadata.version("memlog")
 _DIST = Path("client/dist")
-_log = logging.getLogger("memlog")
+_log = logging.getLogger("uvicorn.error")
 
 # ── App factory ───────────────────────────────────────────────────────────────
 
