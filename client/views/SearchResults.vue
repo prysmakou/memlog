@@ -78,6 +78,7 @@ const loadingIndicator = ref();
 const results = ref([]);
 const router = useRouter();
 const semantic = ref(false);
+const preSemanticsortBy = ref(null);
 const sortMenu = ref();
 const toast = useToast();
 
@@ -90,12 +91,12 @@ const sortByName = computed(() => {
   return sortOptionNames[props.sortBy];
 });
 
-function init() {
+function init(sortOverride) {
   if (!props.searchTerm) return;
   loadingIndicator.value.setLoading();
   getNotes(props.searchTerm, undefined, undefined, undefined, semantic.value)
     .then((data) => {
-      results.value = sortResults(data);
+      results.value = sortResults(data, sortOverride);
       if (results.value.length > 0) {
         loadingIndicator.value.setLoaded();
       } else {
@@ -108,10 +109,10 @@ function init() {
     });
 }
 
-function sortResults(results) {
-  if (props.sortBy === searchSortOptions.title) {
+function sortResults(results, sortBy = props.sortBy) {
+  if (sortBy === searchSortOptions.title) {
     return results.sort((a, b) => a.title.localeCompare(b.title));
-  } else if (props.sortBy === searchSortOptions.lastModified) {
+  } else if (sortBy === searchSortOptions.lastModified) {
     return results.sort((a, b) => b.lastModified - a.lastModified);
   } else {
     return results.sort((a, b) => b.score - a.score);
@@ -160,7 +161,14 @@ function toggleSortMenu(event) {
 
 watch(() => props.searchTerm, init);
 watch(() => props.sortBy, reSortResults);
-watch(semantic, init);
+watch(semantic, (isOn) => {
+  const newSort = isOn
+    ? searchSortOptions.score
+    : (preSemanticsortBy.value ?? searchSortOptions.lastModified);
+  if (isOn) preSemanticsortBy.value = props.sortBy;
+  updateSortByParam(newSort);
+  if (props.searchTerm && props.searchTerm !== "*") init(newSort);
+});
 onMounted(init);
 </script>
 

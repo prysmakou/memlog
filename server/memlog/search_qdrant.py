@@ -51,6 +51,7 @@ class QdrantSearchIndex:
         self._root = config.notes_path
         self._ollama_url = config.ollama_url.rstrip("/")
         self._model = config.embedding_model
+        self._voyage_api_key = config.voyage_api_key
         self._collection = config.qdrant_collection
         self._client: Any = AsyncQdrantClient(url=config.qdrant_url)
         self._lock = asyncio.Lock()
@@ -60,10 +61,19 @@ class QdrantSearchIndex:
 
     async def _embed(self, text: str) -> list[float]:
         async with httpx.AsyncClient() as http:
+            if self._voyage_api_key:
+                r = await http.post(
+                    "https://api.voyageai.com/v1/embeddings",
+                    headers={"Authorization": f"Bearer {self._voyage_api_key}"},
+                    json={"model": self._model, "input": [text]},
+                    timeout=30.0,
+                )
+                r.raise_for_status()
+                return r.json()["data"][0]["embedding"]  # type: ignore[no-any-return]
+            # First Ollama call can be slow while the model loads into memory
             r = await http.post(
                 f"{self._ollama_url}/api/embeddings",
                 json={"model": self._model, "prompt": text},
-                # First call can be slow while Ollama loads the model into memory
                 timeout=300.0,
             )
             r.raise_for_status()

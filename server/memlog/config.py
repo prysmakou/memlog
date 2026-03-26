@@ -58,6 +58,7 @@ class AppConfig:
     qdrant_collection: str = "memlog"
     ollama_url: str = "http://localhost:11434"
     embedding_model: str = "nomic-embed-text"
+    voyage_api_key: str | None = None
 
     @property
     def semantic_search_available(self) -> bool:
@@ -111,6 +112,7 @@ class AppConfig:
             qdrant_collection=_env("MEMLOG_QDRANT_COLLECTION") or "memlog",
             ollama_url=_env("MEMLOG_OLLAMA_URL") or "http://localhost:11434",
             embedding_model=_env("MEMLOG_EMBEDDING_MODEL") or "nomic-embed-text",
+            voyage_api_key=_env("MEMLOG_VOYAGE_API_KEY"),
             username=_env("MEMLOG_USERNAME"),
             password=_env("MEMLOG_PASSWORD"),
             secret_key=_env("MEMLOG_SECRET_KEY"),
