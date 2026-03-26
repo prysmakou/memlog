@@ -60,24 +60,31 @@ class QdrantSearchIndex:
         self._sync_cooldown = _sync_cooldown
 
     async def _embed(self, text: str) -> list[float]:
+        return (await self._embed_batch([text]))[0]
+
+    async def _embed_batch(self, texts: list[str]) -> list[list[float]]:
         async with httpx.AsyncClient() as http:
             if self._voyage_api_key:
                 r = await http.post(
                     "https://api.voyageai.com/v1/embeddings",
                     headers={"Authorization": f"Bearer {self._voyage_api_key}"},
-                    json={"model": self._model, "input": [text]},
-                    timeout=30.0,
+                    json={"model": self._model, "input": texts},
+                    timeout=60.0,
                 )
                 r.raise_for_status()
-                return r.json()["data"][0]["embedding"]  # type: ignore[no-any-return]
-            # First Ollama call can be slow while the model loads into memory
-            r = await http.post(
-                f"{self._ollama_url}/api/embeddings",
-                json={"model": self._model, "prompt": text},
-                timeout=300.0,
-            )
-            r.raise_for_status()
-            return r.json()["embedding"]  # type: ignore[no-any-return]
+                return [item["embedding"] for item in r.json()["data"]]  # type: ignore[no-any-return]
+            # Ollama doesn't support batch; embed sequentially
+            # First call can be slow while the model loads into memory
+            results = []
+            for text in texts:
+                r = await http.post(
+                    f"{self._ollama_url}/api/embeddings",
+                    json={"model": self._model, "prompt": text},
+                    timeout=300.0,
+                )
+                r.raise_for_status()
+                results.append(r.json()["embedding"])
+            return results  # type: ignore[return-value]
 
     async def _ensure_collection(self) -> None:
         if self._initialized:
@@ -129,7 +136,9 @@ class QdrantSearchIndex:
                     break
 
             on_disk: set[str] = set()
-            to_upsert = []
+            pending: list[
+                tuple[str, str, list[str], float, str]
+            ] = []  # (fname, text, tags, mtime, stem)
 
             for p in self._root.glob("*.md"):
                 fname = p.name
@@ -138,23 +147,27 @@ class QdrantSearchIndex:
                 if disk_mtime == stored.get(fname):
                     continue
                 content = p.read_text(errors="replace")
-                tags = _extract_tags(content)
-                vector = await self._embed(f"{p.stem}\n{content}")
-                to_upsert.append(
+                pending.append(
+                    (fname, f"{p.stem}\n{content}", _extract_tags(content), disk_mtime, p.stem)
+                )
+
+            if pending:
+                texts = [item[1] for item in pending]
+                vectors = await self._embed_batch(texts)
+                points = [
                     PointStruct(
                         id=_note_id(fname),
                         vector=vector,
                         payload={
                             "filename": fname,
-                            "title": p.stem,
+                            "title": stem,
                             "tags": tags,
-                            "last_modified": disk_mtime,
+                            "last_modified": mtime,
                         },
                     )
-                )
-
-            if to_upsert:
-                await self._client.upsert(self._collection, points=to_upsert)
+                    for (fname, _, tags, mtime, stem), vector in zip(pending, vectors, strict=True)
+                ]
+                await self._client.upsert(self._collection, points=points)
 
             stale = set(stored) - on_disk
             if stale:
