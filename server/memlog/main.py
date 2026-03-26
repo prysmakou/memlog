@@ -1,6 +1,7 @@
 import importlib.metadata
 import logging
 import os as _os
+import re as _re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -28,7 +29,12 @@ from .models import (
 )
 from .notes import NoteStore
 
-_VERSION = importlib.metadata.version("memlog")
+# importlib normalizes PEP 440 pre-release strings (e.g. 0.1.0-rc.12 → 0.1.0rc12);
+# convert back to match the git tag format (v0.1.0-rc.12 or v0.1.0)
+_raw = importlib.metadata.version("memlog")
+_VERSION = _re.sub(r"^(\d+\.\d+\.\d+)rc(\d+)$", r"v\1-rc.\2", _raw) or f"v{_raw}"
+if not _VERSION.startswith("v"):
+    _VERSION = f"v{_raw}"
 _DIST = Path("client/dist")
 _log = logging.getLogger("uvicorn.error")
 
