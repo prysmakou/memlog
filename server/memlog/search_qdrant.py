@@ -63,19 +63,34 @@ class QdrantSearchIndex:
         return (await self._embed_batch([text]))[0]
 
     async def _embed_batch(self, texts: list[str]) -> list[list[float]]:
+        """Embed texts, chunking into batches and retrying on 429."""
+        if self._voyage_api_key:
+            results: list[list[float]] = []
+            chunk_size = 32  # stay comfortably within Voyage's per-request limits
+            async with httpx.AsyncClient() as http:
+                for i in range(0, len(texts), chunk_size):
+                    chunk = texts[i : i + chunk_size]
+                    for attempt in range(6):
+                        r = await http.post(
+                            "https://api.voyageai.com/v1/embeddings",
+                            headers={"Authorization": f"Bearer {self._voyage_api_key}"},
+                            json={"model": self._model, "input": chunk},
+                            timeout=60.0,
+                        )
+                        if r.status_code == 429:
+                            retry_after = float(r.headers.get("Retry-After", 2**attempt))
+                            await asyncio.sleep(retry_after)
+                            continue
+                        r.raise_for_status()
+                        results.extend(item["embedding"] for item in r.json()["data"])
+                        break
+                    else:
+                        r.raise_for_status()  # all retries exhausted
+            return results  # type: ignore[return-value]
+        # Ollama doesn't support batch; embed sequentially
+        # First call can be slow while the model loads into memory
+        results_ollama: list[list[float]] = []
         async with httpx.AsyncClient() as http:
-            if self._voyage_api_key:
-                r = await http.post(
-                    "https://api.voyageai.com/v1/embeddings",
-                    headers={"Authorization": f"Bearer {self._voyage_api_key}"},
-                    json={"model": self._model, "input": texts},
-                    timeout=60.0,
-                )
-                r.raise_for_status()
-                return [item["embedding"] for item in r.json()["data"]]  # type: ignore[no-any-return]
-            # Ollama doesn't support batch; embed sequentially
-            # First call can be slow while the model loads into memory
-            results = []
             for text in texts:
                 r = await http.post(
                     f"{self._ollama_url}/api/embeddings",
@@ -83,8 +98,8 @@ class QdrantSearchIndex:
                     timeout=300.0,
                 )
                 r.raise_for_status()
-                results.append(r.json()["embedding"])
-            return results  # type: ignore[return-value]
+                results_ollama.append(r.json()["embedding"])
+        return results_ollama  # type: ignore[return-value]
 
     async def _ensure_collection(self) -> None:
         if self._initialized:
