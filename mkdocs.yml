@@ -1,7 +1,7 @@
 site_name: Memlog
-site_url: https://prysmakou.github.io/notes/
-repo_url: https://github.com/prysmakou/notes
-repo_name: prysmakou/notes
+site_url: https://prysmakou.github.io/memlog/
+repo_url: https://github.com/prysmakou/memlog
+repo_name: prysmakou/memlog
 
 theme:
   name: material
