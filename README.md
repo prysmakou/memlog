@@ -33,7 +33,7 @@ services:
 docker compose up -d
 ```
 
-Open `http://localhost:8080`. Full docs in the **[Wiki](https://github.com/prysmakou/memlog/wiki)**.
+Open `http://localhost:8080`. Full docs at **[prysmakou.github.io/memlog](https://prysmakou.github.io/memlog/)**.
 
 ## MCP Server
 
@@ -45,7 +45,7 @@ Memlog ships a built-in MCP server ([Streamable HTTP](https://modelcontextprotoc
 claude mcp add --transport http --scope user memlog http://<host>:8090/mcp
 ```
 
-See the [MCP Server wiki page](https://github.com/prysmakou/memlog/wiki/MCP-Server) for auth token setup.
+See the [MCP Server docs](https://prysmakou.github.io/memlog/mcp-server/) for auth token setup.
 
 ## Development
 
@@ -70,3 +70,5 @@ mcp-server/   Python MCP server (FastMCP, Streamable HTTP)
 ```
 
 Notes are stored as plain `.md` files in `MEMLOG_PATH`. Full-text search uses a [Whoosh](https://whoosh.readthedocs.io/) index stored in `MEMLOG_PATH/.memlog/`. There is no database.
+
+**Optional:** semantic (vector) search via [Qdrant](https://qdrant.tech/) + [Voyage AI](https://www.voyageai.com/) or [Ollama](https://ollama.com/). Set `MEMLOG_QDRANT_URL` to enable; see the [Search docs](https://prysmakou.github.io/memlog/search/#semantic-search) for setup.
