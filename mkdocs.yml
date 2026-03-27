@@ -1,0 +1,29 @@
+site_name: Memlog
+site_url: https://prysmakou.github.io/notes/
+repo_url: https://github.com/prysmakou/notes
+repo_name: prysmakou/notes
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Configuration: configuration.md
+  - Authentication: authentication.md
+  - Search: search.md
+  - MCP Server: mcp-server.md
+  - Reverse Proxy: reverse-proxy.md
