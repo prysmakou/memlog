@@ -1,12 +1,15 @@
 import importlib.metadata
+import logging
 import os as _os
+import re as _re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
 
+import httpx
 from fastapi import Depends, FastAPI, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.status import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
@@ -26,17 +29,52 @@ from .models import (
 )
 from .notes import NoteStore
 
-_VERSION = importlib.metadata.version("memlog")
+# importlib normalizes PEP 440 pre-release strings (e.g. 0.1.0-rc.12 → 0.1.0rc12);
+# convert back to match the git tag format (v0.1.0-rc.12 or v0.1.0)
+_raw = importlib.metadata.version("memlog")
+_VERSION = _re.sub(r"^(\d+\.\d+\.\d+)rc(\d+)$", r"v\1-rc.\2", _raw) or f"v{_raw}"
+if not _VERSION.startswith("v"):
+    _VERSION = f"v{_raw}"
 _DIST = Path("client/dist")
+_log = logging.getLogger("uvicorn.error")
 
 # ── App factory ───────────────────────────────────────────────────────────────
 
 
 def create_app(config: AppConfig | None = None) -> FastAPI:
     cfg = config or AppConfig.from_env()
+    qdrant_index = None  # may be replaced below; declared here so lifespan can rebind it
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        nonlocal qdrant_index
+        _log.info("Memlog %s", _VERSION)
+        if qdrant_index is not None:
+            try:
+                await qdrant_index._client.get_collections()
+                _log.info("Semantic search: Qdrant reachable")
+            except Exception as exc:
+                _log.warning("Semantic search disabled: cannot reach Qdrant (%s)", exc)
+                qdrant_index = None
+        if qdrant_index is not None and cfg.voyage_api_key:
+            try:
+                async with httpx.AsyncClient() as http:
+                    r = await http.post(
+                        "https://api.voyageai.com/v1/embeddings",
+                        headers={"Authorization": f"Bearer {cfg.voyage_api_key}"},
+                        json={"model": cfg.embedding_model, "input": ["test"]},
+                        timeout=10.0,
+                    )
+                    r.raise_for_status()
+                _log.info("Semantic search: Voyage AI reachable")
+            except Exception as exc:
+                # Log error type only — do not include exc details which may echo request headers
+                _log.warning(
+                    "Semantic search disabled: cannot reach Voyage AI (%s: %s)",
+                    type(exc).__name__,
+                    exc,
+                )
+                qdrant_index = None
         if cfg.auth_type == AuthType.TOTP and cfg.totp_key:
             print_totp_qr(cfg)
         yield
@@ -55,12 +93,40 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
     auth = Authenticator(cfg)
     Auth = Annotated[str | None, Depends(auth)]
 
+    if cfg.semantic_search_available:
+        from .search_qdrant import QdrantSearchIndex
+
+        try:
+            qdrant_index = QdrantSearchIndex(cfg)
+        except ImportError as exc:
+            raise RuntimeError(str(exc)) from None
+
     # ── Health & version ──────────────────────────────────────────────────────
 
     @app.get("/health", include_in_schema=False)
     @app.get(f"{cfg.path_prefix}/health", include_in_schema=False)
-    async def health() -> str:
-        return "OK"
+    async def health() -> JSONResponse:
+        checks: dict[str, str] = {}
+        healthy = True
+
+        if not cfg.notes_path.is_dir() or not _os.access(cfg.notes_path, _os.W_OK):
+            checks["filesystem"] = "not writable"
+            healthy = False
+        else:
+            checks["filesystem"] = "ok"
+
+        if qdrant_index is not None:
+            try:
+                await qdrant_index._client.get_collections()
+                checks["qdrant"] = "ok"
+            except Exception as exc:
+                checks["qdrant"] = f"unreachable: {exc}"
+                healthy = False
+
+        return JSONResponse(
+            {"status": "ok" if healthy else "degraded", "checks": checks},
+            status_code=200 if healthy else 503,
+        )
 
     @app.get(f"{cfg.path_prefix}/api/version", response_model=VersionResponse, tags=["meta"])
     async def version() -> VersionResponse:
@@ -75,6 +141,7 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
             quick_access_term=cfg.quick_access_term,
             quick_access_sort=cfg.quick_access_sort,
             quick_access_limit=cfg.quick_access_limit,
+            semantic_search_available=cfg.semantic_search_available,
         )
 
     # ── Auth ──────────────────────────────────────────────────────────────────
@@ -115,7 +182,10 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         sort: str = "score",
         order: str = "desc",
         limit: int = 1000,
+        semantic: bool = False,
     ) -> list[SearchResult]:
+        if semantic and qdrant_index is not None:
+            return await qdrant_index.search(term, sort=sort, order=order, limit=limit)
         return notes.search(term, sort=sort, order=order, limit=limit)
 
     @app.get(f"{cfg.path_prefix}/api/tags", response_model=list[str], tags=["notes"])

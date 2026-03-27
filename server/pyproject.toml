@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "memlog"
-version = "0.0.4-rc.5"
+version = "0.1.0-rc.15"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]>=0.118",
@@ -17,6 +17,9 @@ dependencies = [
 ]
 
 [dependency-groups]
+qdrant = [
+    "qdrant-client>=1.12",
+]
 dev = [
     "pytest>=8",
     "pytest-asyncio>=0.24",

@@ -3,18 +3,24 @@
     <!-- Search Input -->
     <SearchInput :initialSearchTerm="props.searchTerm" class="mb-2" />
 
-    <LoadingIndicator ref="loadingIndicator" class="flex-1">
-      <!-- Sort By -->
-      <div class="flex justify-end">
-        <CustomButton
-          :label="`Sort By: ${sortByName}`"
-          :iconPath="mdiSort"
-          class="mb-1"
-          @click="toggleSortMenu"
-        />
-        <PrimeMenu ref="sortMenu" :model="menuItems" :popup="true" />
-      </div>
+    <!-- Sort By + Semantic toggle -->
+    <div class="flex justify-end gap-1">
+      <Toggle
+        v-if="globalStore.config.semanticSearchAvailable"
+        label="Semantic"
+        :isOn="semantic"
+        @click="semantic = !semantic"
+      />
+      <CustomButton
+        :label="`Sort By: ${sortByName}`"
+        :iconPath="mdiSort"
+        class="mb-1"
+        @click="toggleSortMenu"
+      />
+      <PrimeMenu ref="sortMenu" :model="menuItems" :popup="true" />
+    </div>
 
+    <LoadingIndicator ref="loadingIndicator" class="flex-1">
       <!-- Search Results -->
       <div
         v-for="result in results"
@@ -54,7 +60,9 @@ import CustomButton from "../components/CustomButton.vue";
 import LoadingIndicator from "../components/LoadingIndicator.vue";
 import PrimeMenu from "../components/PrimeMenu.vue";
 import Tag from "../components/Tag.vue";
+import Toggle from "../components/Toggle.vue";
 import { params, searchSortOptions } from "../constants.js";
+import { useGlobalStore } from "../globalStore.js";
 import SearchInput from "../partials/SearchInput.vue";
 
 const props = defineProps({
@@ -65,9 +73,12 @@ const props = defineProps({
   },
 });
 
+const globalStore = useGlobalStore();
 const loadingIndicator = ref();
 const results = ref([]);
 const router = useRouter();
+const semantic = ref(false);
+const preSemanticsortBy = ref(null);
 const sortMenu = ref();
 const toast = useToast();
 
@@ -80,11 +91,12 @@ const sortByName = computed(() => {
   return sortOptionNames[props.sortBy];
 });
 
-function init() {
+function init(sortOverride) {
+  if (!props.searchTerm) return;
   loadingIndicator.value.setLoading();
-  getNotes(props.searchTerm)
+  getNotes(props.searchTerm, undefined, undefined, undefined, semantic.value)
     .then((data) => {
-      results.value = sortResults(data);
+      results.value = sortResults(data, sortOverride);
       if (results.value.length > 0) {
         loadingIndicator.value.setLoaded();
       } else {
@@ -97,10 +109,10 @@ function init() {
     });
 }
 
-function sortResults(results) {
-  if (props.sortBy === searchSortOptions.title) {
+function sortResults(results, sortBy = props.sortBy) {
+  if (sortBy === searchSortOptions.title) {
     return results.sort((a, b) => a.title.localeCompare(b.title));
-  } else if (props.sortBy === searchSortOptions.lastModified) {
+  } else if (sortBy === searchSortOptions.lastModified) {
     return results.sort((a, b) => b.lastModified - a.lastModified);
   } else {
     return results.sort((a, b) => b.score - a.score);
@@ -149,6 +161,14 @@ function toggleSortMenu(event) {
 
 watch(() => props.searchTerm, init);
 watch(() => props.sortBy, reSortResults);
+watch(semantic, (isOn) => {
+  const newSort = isOn
+    ? searchSortOptions.score
+    : (preSemanticsortBy.value ?? searchSortOptions.lastModified);
+  if (isOn) preSemanticsortBy.value = props.sortBy;
+  updateSortByParam(newSort);
+  if (props.searchTerm && props.searchTerm !== "*") init(newSort);
+});
 onMounted(init);
 </script>
 
