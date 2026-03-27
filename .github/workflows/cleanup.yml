@@ -1,0 +1,21 @@
+name: Cleanup old RC images
+
+on:
+  schedule:
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    steps:
+      - name: Delete old RC versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: memlog
+          package-type: container
+          delete-only-pre-release-versions: true
+          min-versions-to-keep: 1
