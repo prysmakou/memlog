@@ -38,6 +38,16 @@ if not _VERSION.startswith("v"):
 _DIST = Path("client/dist")
 _log = logging.getLogger("uvicorn.error")
 
+# Health-check requests are called frequently by Docker / load balancers and
+# clutter logs with no useful signal.
+logging.getLogger("uvicorn.access").addFilter(
+    type(
+        "_NoHealthCheck",
+        (logging.Filter,),
+        {"filter": lambda self, r: "/health" not in r.getMessage()},
+    )()
+)
+
 # ── App factory ───────────────────────────────────────────────────────────────
 
 
